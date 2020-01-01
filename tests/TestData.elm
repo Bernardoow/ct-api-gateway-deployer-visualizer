@@ -1,4 +1,4 @@
-module TestData exposing (actionData, blueprintData, corsData, flaskData, methodData, queryParamsData, resourceData)
+module TestData exposing (actionData, blueprintData, corsData, fileExample01Data, flaskData, methodData, queryParamsData, resourceData)
 
 
 actionData : String
@@ -34,3 +34,44 @@ resourceData =
 blueprintData : String
 blueprintData =
     """{"name": "name", "url_prefix": "url_prefix", "resources": [""" ++ resourceData ++ """]}"""
+
+
+fileExample01Data : String
+fileExample01Data =
+    """
+    {
+    "blueprint" : {
+        "name": "fileExample01Data",
+        "url_prefix": "url_prefix",
+        "resources": [{
+            "name": "get-users1",
+            "flask": {
+                "resourceModule": "resources",
+                "resourceClass": "GetUsers",
+                "strictSlashes": false
+            },
+            "methods": [{
+                "path": "/path",
+                "cors": {
+                  "enable": true, 
+                  "removeDefaultResponseTemplates": true,
+                  "allowHeaders": [""]
+                },
+                "queryParams": [{
+                   "name": "teste",
+                   "type": "string"
+                }],
+                "actions": [{
+                    "type": "GET",
+                    "integration": "",
+                    "proxyIntegration": true,
+                    "vpcLink": "",
+                    "authorization": ""
+                }]
+            }]
+        }]
+    }
+}
+
+
+    """

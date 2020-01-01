@@ -1,13 +1,23 @@
-module Main exposing (Model, Msg(..), init, main, update, view, viewAction, viewMethod, viewResource)
+module Main exposing (Model, Msg(..), init, main, update, view, viewAction, viewBlueprint, viewJsonErrorReport, viewMethod, viewResource, viewTextArea)
 
 import Browser
 import Dict
-import Html exposing (Html, button, div, h1, h3, img, table, tbody, td, text, textarea, tr)
-import Html.Attributes exposing (class, src)
-import Html.Events exposing (onClick)
+import Html exposing (Html, button, div, h1, h2, h3, i, img, p, pre, span, table, tbody, td, text, textarea, tr)
+import Html.Attributes exposing (class, rows, src, value)
+import Html.Events exposing (onClick, onInput)
 import Json.Decode as Decode
-import Models exposing (Blueprint, Resource, ViewModelAction, ViewModelMethod, blueprintDecoder)
-import TestData exposing (blueprintData)
+import Models exposing (Blueprint, Resource, ViewModelAction, ViewModelMethod, apiRoutesFileConfigurationDecoder)
+import TestData exposing (fileExample01Data)
+
+
+
+---- HELPERS ----
+
+
+dictUpdate : { key : String, itemUpdated : a, dict : Dict.Dict String a } -> Dict.Dict String a
+dictUpdate { key, itemUpdated, dict } =
+    --TODO TEST
+    Dict.insert key itemUpdated dict
 
 
 
@@ -15,12 +25,12 @@ import TestData exposing (blueprintData)
 
 
 type alias Model =
-    { blueprint : Maybe Blueprint }
+    { blueprint : Result Decode.Error Blueprint, apiRoutesFileConfigurationRaw : String }
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( { blueprint = Decode.decodeString blueprintDecoder blueprintData |> Result.toMaybe }, Cmd.none )
+init : String -> ( Model, Cmd Msg )
+init dataToLoad =
+    ( { blueprint = Decode.decodeString apiRoutesFileConfigurationDecoder dataToLoad, apiRoutesFileConfigurationRaw = dataToLoad }, Cmd.none )
 
 
 
@@ -30,6 +40,8 @@ init =
 type Msg
     = NoOp
     | OnClickMethod String String
+    | OnClickAction { resourcekey : String, methodKey : String, actionKey : String }
+    | OnInputTextAreaApiRoutesFileConfiguration String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -37,22 +49,34 @@ update msg model =
     case msg of
         OnClickMethod resourcekey methodKey ->
             case model.blueprint of
-                Just blueprint ->
+                Ok blueprint ->
                     case Dict.get resourcekey blueprint.resources of
                         Just resource ->
                             case Dict.get methodKey resource.methods of
                                 Just method ->
+                                    let
+                                        methodsUpdated =
+                                            dictUpdate
+                                                { key = methodKey
+                                                , itemUpdated = { method | isOpened = method.isOpened |> not }
+                                                , dict = resource.methods
+                                                }
+
+                                        resourcesUpdated =
+                                            dictUpdate
+                                                { key = resourcekey
+                                                , itemUpdated =
+                                                    { resource
+                                                        | methods = methodsUpdated
+                                                    }
+                                                , dict = blueprint.resources
+                                                }
+                                    in
                                     ( { model
                                         | blueprint =
-                                            Just
+                                            Ok
                                                 { blueprint
-                                                    | resources =
-                                                        Dict.insert resourcekey
-                                                            { resource
-                                                                | methods =
-                                                                    Dict.insert methodKey { method | isOpened = method.isOpened |> not } resource.methods
-                                                            }
-                                                            blueprint.resources
+                                                    | resources = resourcesUpdated
                                                 }
                                       }
                                     , Cmd.none
@@ -64,8 +88,80 @@ update msg model =
                         Nothing ->
                             ( model, Cmd.none )
 
-                Nothing ->
+                Err _ ->
                     ( model, Cmd.none )
+
+        OnClickAction { resourcekey, methodKey, actionKey } ->
+            case model.blueprint of
+                Ok blueprint ->
+                    case Dict.get resourcekey blueprint.resources of
+                        Just resource ->
+                            case Dict.get methodKey resource.methods of
+                                Just vmMethod ->
+                                    case Dict.get actionKey vmMethod.method.actions of
+                                        Just vmAction ->
+                                            let
+                                                actionsUpdated =
+                                                    dictUpdate
+                                                        { key = actionKey
+                                                        , itemUpdated = { vmAction | isOpened = vmAction.isOpened |> not }
+                                                        , dict = vmMethod.method.actions
+                                                        }
+
+                                                method =
+                                                    vmMethod.method
+
+                                                methodUpdated =
+                                                    { method | actions = actionsUpdated }
+
+                                                methodsUpdated =
+                                                    dictUpdate
+                                                        { key = methodKey
+                                                        , itemUpdated = { vmMethod | method = methodUpdated }
+                                                        , dict = resource.methods
+                                                        }
+
+                                                resourcesUpdated =
+                                                    dictUpdate
+                                                        { key = resourcekey
+                                                        , itemUpdated =
+                                                            { resource
+                                                                | methods = methodsUpdated
+                                                            }
+                                                        , dict = blueprint.resources
+                                                        }
+                                            in
+                                            ( { model
+                                                | blueprint =
+                                                    Ok
+                                                        { blueprint
+                                                            | resources = resourcesUpdated
+                                                        }
+                                              }
+                                            , Cmd.none
+                                            )
+
+                                        Nothing ->
+                                            ( model, Cmd.none )
+
+                                Nothing ->
+                                    ( model, Cmd.none )
+
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
+        OnInputTextAreaApiRoutesFileConfiguration configuration ->
+            let
+                _ =
+                    Debug.log "Decode.decodeString apiRoutesFileConfigurationDecoder configuration" <| Decode.decodeString apiRoutesFileConfigurationDecoder configuration
+
+                _ =
+                    Debug.log "Decode.decodeString apiRoutesFileConfigurationDecoder configuration" <| Result.mapError Decode.errorToString <| Decode.decodeString apiRoutesFileConfigurationDecoder configuration
+            in
+            ( { blueprint = Decode.decodeString apiRoutesFileConfigurationDecoder configuration, apiRoutesFileConfigurationRaw = configuration }, Cmd.none )
 
         _ ->
             ( model, Cmd.none )
@@ -75,10 +171,37 @@ update msg model =
 ---- VIEW ----
 
 
-viewAction : ViewModelAction -> Html Msg
-viewAction vmAction =
+viewAction : { resourcekey : String, methodKey : String } -> ViewModelAction -> Html Msg
+viewAction { resourcekey, methodKey } vmAction =
+    let
+        actionBadgeSpecificClass =
+            if vmAction.action.type_ == "GET" then
+                "badge-info"
+
+            else if vmAction.action.type_ == "POST" then
+                "badge-success"
+
+            else if vmAction.action.type_ == "DELETE" then
+                "badge-danger"
+
+            else if vmAction.action.type_ == "PUT" then
+                "badge-warning"
+
+            else
+                ""
+    in
     div []
-        [ button [ class "list-group-item", class "list-group-item-action" ] [ text vmAction.action.type_ ]
+        [ button
+            [ onClick <|
+                OnClickAction
+                    { resourcekey = resourcekey
+                    , methodKey = methodKey
+                    , actionKey = vmAction.action.type_
+                    }
+            , class "list-group-item"
+            , class "list-group-item-action"
+            ]
+            [ span [ class "badge", class actionBadgeSpecificClass ] [ text vmAction.action.type_ ] ]
         , if vmAction.isOpened then
             table [ class "table" ]
                 [ tbody []
@@ -117,10 +240,26 @@ viewAction vmAction =
 
 viewMethod : String -> ViewModelMethod -> Html Msg
 viewMethod resourceKey vmMethod =
+    let
+        iconClass =
+            if vmMethod.isOpened then
+                "fa-arrow-up"
+
+            else
+                "fa-arrow-down"
+    in
     div []
-        [ button [ onClick <| OnClickMethod resourceKey vmMethod.method.path ] [ text vmMethod.method.path ]
+        [ button [ onClick <| OnClickMethod resourceKey vmMethod.method.path, class "list-group-item list-group-item-action" ]
+            [ text vmMethod.method.path
+            , if vmMethod.isOpened then
+                i [ class "float-right fas", class iconClass ] []
+
+              else
+                i [ class "float-right fas", class iconClass ] []
+            ]
         , if vmMethod.isOpened then
-            List.map viewAction vmMethod.method.actions
+            Dict.values vmMethod.method.actions
+                |> List.map (viewAction { resourcekey = resourceKey, methodKey = vmMethod.method.path })
                 |> div [ class "list-group" ]
 
           else
@@ -137,29 +276,71 @@ viewResource resource =
     in
     div [ class "row col-12" ]
         [ h3 [] [ text resource.name ]
-        , div [ class "list-group" ] methods
+        , div [ class "list-group col-12" ] methods
         ]
+
+
+viewTextArea : String -> List (Html Msg)
+viewTextArea apiRoutesFileConfigurationRaw =
+    [ h3 [] [ text "API Routes File Configuration" ]
+    , div [ class "form-group" ]
+        [ textarea [ value apiRoutesFileConfigurationRaw, rows 30, onInput OnInputTextAreaApiRoutesFileConfiguration, class "form-control" ] []
+        ]
+    ]
+
+
+viewBlueprint : Blueprint -> Html Msg
+viewBlueprint blueprint =
+    let
+        resources =
+            Dict.values blueprint.resources
+                |> List.map viewResource
+    in
+    div [ class "col" ]
+        [ h2 [] [ span [] [ text "Blueprint: " ], text blueprint.name ]
+        , p [] [ span [] [ text "Url Prefix: " ], text blueprint.url_prefix ]
+        , div [ class "list-group" ] resources
+        ]
+
+
+viewJsonErrorReport : Decode.Error -> Html Msg
+viewJsonErrorReport error =
+    case error of
+        Decode.Failure errorPhrase _ ->
+            p [ class "alert alert-warning" ] [ text errorPhrase ]
+
+        _ ->
+            p [ class "alert alert-warning" ] [ text <| Decode.errorToString error ]
+
+
+viewVersion : Html Msg
+viewVersion =
+    --TODO TEST
+    p [ class "text-center" ] [ text "Bernardo Gomes -  Version 0.1" ]
 
 
 view : Model -> Html Msg
 view model =
     --"TODO TEST"
     case model.blueprint of
-        Just blueprint ->
-            let
-                resources =
-                    Dict.values blueprint.resources
-                        |> List.map viewResource
-            in
+        Ok blueprint ->
             div [ class "container-fluid" ]
                 [ div [ class "row" ]
-                    [ div [ class "col" ] [ textarea [] [] ]
-                    , div [ class "col" ] [ div [ class "list-group" ] resources ]
+                    [ div [ class "col" ] <| viewTextArea model.apiRoutesFileConfigurationRaw
+                    , viewBlueprint blueprint
                     ]
+                , viewVersion
                 ]
 
-        Nothing ->
-            text "blueprint nothing"
+        Err error ->
+            div [ class "container-fluid" ]
+                [ div [ class "row" ]
+                    [ div [ class "col" ] <| viewTextArea model.apiRoutesFileConfigurationRaw
+                    , div [ class "col" ]
+                        [ viewJsonErrorReport error ]
+                    ]
+                , viewVersion
+                ]
 
 
 
@@ -170,7 +351,7 @@ main : Program () Model Msg
 main =
     Browser.element
         { view = view
-        , init = \_ -> init
+        , init = \_ -> init fileExample01Data
         , update = update
         , subscriptions = always Sub.none
         }

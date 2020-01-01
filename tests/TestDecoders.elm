@@ -75,16 +75,19 @@ decodersTests =
                         , cors = { enable = True, removeDefaultResponseTemplates = True, allowHeaders = [ "header1" ] }
                         , queryParams = [ { name = "name", type_ = "type" } ]
                         , actions =
-                            [ { action =
-                                    { type_ = "GET"
-                                    , integration = "integration"
-                                    , proxyIntegration = True
-                                    , vpcLink = "vpcLink"
-                                    , authorization = "authorization"
+                            Dict.fromList
+                                [ ( "GET"
+                                  , { action =
+                                        { type_ = "GET"
+                                        , integration = "integration"
+                                        , proxyIntegration = True
+                                        , vpcLink = "vpcLink"
+                                        , authorization = "authorization"
+                                        }
+                                    , isOpened = False
                                     }
-                              , isOpened = False
-                              }
-                            ]
+                                  )
+                                ]
                         }
                     )
         , test "Decoder viewViewModelMethod" <|
@@ -101,16 +104,19 @@ decodersTests =
                             , cors = { enable = True, removeDefaultResponseTemplates = True, allowHeaders = [ "header1" ] }
                             , queryParams = [ { name = "name", type_ = "type" } ]
                             , actions =
-                                [ { action =
-                                        { type_ = "GET"
-                                        , integration = "integration"
-                                        , proxyIntegration = True
-                                        , vpcLink = "vpcLink"
-                                        , authorization = "authorization"
+                                Dict.fromList
+                                    [ ( "GET"
+                                      , { action =
+                                            { type_ = "GET"
+                                            , integration = "integration"
+                                            , proxyIntegration = True
+                                            , vpcLink = "vpcLink"
+                                            , authorization = "authorization"
+                                            }
+                                        , isOpened = False
                                         }
-                                  , isOpened = False
-                                  }
-                                ]
+                                      )
+                                    ]
                             }
                         , isOpened = False
                         }
@@ -152,16 +158,19 @@ decodersTests =
                                         , cors = { enable = True, removeDefaultResponseTemplates = True, allowHeaders = [ "header1" ] }
                                         , queryParams = [ { name = "name", type_ = "type" } ]
                                         , actions =
-                                            [ { action =
-                                                    { type_ = "GET"
-                                                    , integration = "integration"
-                                                    , proxyIntegration = True
-                                                    , vpcLink = "vpcLink"
-                                                    , authorization = "authorization"
+                                            Dict.fromList
+                                                [ ( "GET"
+                                                  , { action =
+                                                        { type_ = "GET"
+                                                        , integration = "integration"
+                                                        , proxyIntegration = True
+                                                        , vpcLink = "vpcLink"
+                                                        , authorization = "authorization"
+                                                        }
+                                                    , isOpened = False
                                                     }
-                                              , isOpened = False
-                                              }
-                                            ]
+                                                  )
+                                                ]
                                         }
                                     , isOpened = False
                                     }
@@ -197,16 +206,19 @@ decodersTests =
                                                     , cors = { enable = True, removeDefaultResponseTemplates = True, allowHeaders = [ "header1" ] }
                                                     , queryParams = [ { name = "name", type_ = "type" } ]
                                                     , actions =
-                                                        [ { action =
-                                                                { type_ = "GET"
-                                                                , integration = "integration"
-                                                                , proxyIntegration = True
-                                                                , vpcLink = "vpcLink"
-                                                                , authorization = "authorization"
+                                                        Dict.fromList
+                                                            [ ( "GET"
+                                                              , { action =
+                                                                    { type_ = "GET"
+                                                                    , integration = "integration"
+                                                                    , proxyIntegration = True
+                                                                    , vpcLink = "vpcLink"
+                                                                    , authorization = "authorization"
+                                                                    }
+                                                                , isOpened = False
                                                                 }
-                                                          , isOpened = False
-                                                          }
-                                                        ]
+                                                              )
+                                                            ]
                                                     }
                                                 , isOpened = False
                                                 }

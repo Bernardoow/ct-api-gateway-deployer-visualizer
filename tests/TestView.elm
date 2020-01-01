@@ -2,24 +2,32 @@ module TestView exposing (viewsTests)
 
 import Dict
 import Expect exposing (Expectation)
+import Html exposing (div)
+import Html.Attributes as HtmlAttr
 import Json.Decode as Decode
+import Json.Encode as Encode
 import Main as Main
-import Models exposing (Flask, Method, ViewModelAction, actionDecoder, blueprintDecoder, corsDecoder, flaskDecoder, methodDecoder, queryParamsDecoder, resourceDecoder)
+import Models exposing (Blueprint, Flask, Method, ViewModelAction, actionDecoder, blueprintDecoder, corsDecoder, flaskDecoder, methodDecoder, queryParamsDecoder, resourceDecoder)
 import ProgramTest exposing (ProgramTest)
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
-import TestData exposing (actionData, blueprintData, corsData, flaskData, methodData, queryParamsData, resourceData)
+import TestData exposing (actionData, corsData, fileExample01Data, flaskData, methodData, queryParamsData, resourceData)
 
 
-start : ProgramTest Main.Model Main.Msg (Cmd Main.Msg)
-start =
+startCustom : String -> ProgramTest Main.Model Main.Msg (Cmd Main.Msg)
+startCustom dataToLoad =
     ProgramTest.createElement
-        { init = \_ -> Main.init
+        { init = \_ -> Main.init dataToLoad
         , update = Main.update
         , view = Main.view
         }
         |> ProgramTest.start ()
+
+
+start : ProgramTest Main.Model Main.Msg (Cmd Main.Msg)
+start =
+    startCustom fileExample01Data
 
 
 defaultFlask : Flask
@@ -30,10 +38,10 @@ defaultFlask =
     }
 
 
-defaultViewModelAction : ViewModelAction
-defaultViewModelAction =
+customViewModelAction : String -> ViewModelAction
+customViewModelAction method =
     { action =
-        { type_ = "GET"
+        { type_ = method
         , integration = "integration1"
         , proxyIntegration = True
         , vpcLink = "vpcLink1"
@@ -43,15 +51,39 @@ defaultViewModelAction =
     }
 
 
+defaultViewModelAction : ViewModelAction
+defaultViewModelAction =
+    customViewModelAction "GET"
+
+
+defaultParamViewAction : { resourcekey : String, methodKey : String }
+defaultParamViewAction =
+    { resourcekey = "String", methodKey = "String" }
+
+
 defaultMethod : Method
 defaultMethod =
     { path = "path"
     , cors = { enable = True, removeDefaultResponseTemplates = True, allowHeaders = [ "header1" ] }
     , queryParams = [ { name = "name", type_ = "type" } ]
     , actions =
-        [ defaultViewModelAction
-        ]
+        Dict.fromList
+            [ ( "GET", defaultViewModelAction )
+            ]
     }
+
+
+defaultBlueprint : Blueprint
+defaultBlueprint =
+    { name = "Blueprint"
+    , url_prefix = "url_prefix"
+    , resources = Dict.empty
+    }
+
+
+defaultError : Decode.Error
+defaultError =
+    Decode.Failure "Some error happend" (Encode.int 2)
 
 
 viewsTests : Test
@@ -77,14 +109,24 @@ viewsTests =
                 \_ ->
                     Main.viewResource { name = "Resource 1", flask = defaultFlask, methods = Dict.empty }
                         |> Query.fromHtml
-                        |> Query.has [ Selector.tag "div", Selector.class "list-group" ]
+                        |> Query.has [ Selector.tag "div", Selector.classes [ "list-group", "col-12" ] ]
             ]
         , describe "Test viewMethod"
             [ test "it should has a button with method information" <|
                 \_ ->
                     Main.viewMethod "" { method = { defaultMethod | path = "endpointA/" }, isOpened = False }
                         |> Query.fromHtml
-                        |> Query.has [ Selector.tag "button", Selector.containing [ Selector.text "endpointA/" ] ]
+                        |> Query.has [ Selector.tag "button", Selector.classes [ "list-group-item", "list-group-item-action" ], Selector.containing [ Selector.text "endpointA/" ] ]
+            , test "it should has a icon arrow down when isOpened is false" <|
+                \_ ->
+                    Main.viewMethod "" { method = { defaultMethod | path = "endpointA/" }, isOpened = False }
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.tag "i", Selector.classes [ "fas", "fa-arrow-down", "float-right" ], Selector.containing [ Selector.text "endpointA/" ] ]
+            , test "it should has a icon arrow down when isOpened is True" <|
+                \_ ->
+                    Main.viewMethod "" { method = { defaultMethod | path = "endpointA/" }, isOpened = True }
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.tag "i", Selector.classes [ "fas", "fa-arrow-up", "float-right" ], Selector.containing [ Selector.text "endpointA/" ] ]
             , test "it should not show up the information about actions" <|
                 \_ ->
                     Main.viewMethod "" { method = { defaultMethod | path = "endpointA/" }, isOpened = False }
@@ -116,17 +158,37 @@ viewsTests =
         , describe "Test viewAction"
             [ test "it should has a button with method information" <|
                 \_ ->
-                    Main.viewAction defaultViewModelAction
+                    Main.viewAction defaultParamViewAction defaultViewModelAction
                         |> Query.fromHtml
                         |> Query.has [ Selector.tag "button", Selector.containing [ Selector.text "GET" ] ]
+            , test "it should has a button contain a classes badge badge-info when it action is get" <|
+                \_ ->
+                    Main.viewAction defaultParamViewAction (customViewModelAction "GET")
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.tag "button", Selector.containing [ Selector.tag "span", Selector.classes [ "badge", "badge-info" ], Selector.text "GET" ] ]
+            , test "it should has a button contain a classes badge badge-success when it action is post" <|
+                \_ ->
+                    Main.viewAction defaultParamViewAction (customViewModelAction "POST")
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.tag "button", Selector.containing [ Selector.tag "span", Selector.classes [ "badge", "badge-success" ], Selector.text "POST" ] ]
+            , test "it should has a button contain a classes badge badge-danger when it action is delete" <|
+                \_ ->
+                    Main.viewAction defaultParamViewAction (customViewModelAction "DELETE")
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.tag "button", Selector.containing [ Selector.tag "span", Selector.classes [ "badge", "badge-danger" ], Selector.text "DELETE" ] ]
+            , test "it should has a button contain a classes badge badge-danger when it action is put" <|
+                \_ ->
+                    Main.viewAction defaultParamViewAction (customViewModelAction "PUT")
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.tag "button", Selector.containing [ Selector.tag "span", Selector.classes [ "badge", "badge-warning" ], Selector.text "PUT" ] ]
             , test "it should hasNot a table with action information" <|
                 \_ ->
-                    Main.viewAction defaultViewModelAction
+                    Main.viewAction defaultParamViewAction defaultViewModelAction
                         |> Query.fromHtml
                         |> Query.hasNot [ Selector.tag "table" ]
             , test "it should has a table with action information" <|
                 \_ ->
-                    Main.viewAction defaultViewModelAction
+                    Main.viewAction defaultParamViewAction defaultViewModelAction
                         |> Query.fromHtml
                         |> Query.findAll [ Selector.tag "table" ]
                         |> Query.each
@@ -184,5 +246,96 @@ viewsTests =
                                     ]
                                 ]
                             )
+            , test "it should show up the action information " <|
+                \_ ->
+                    start
+                        |> ProgramTest.clickButton "path"
+                        |> ProgramTest.clickButton "GET"
+                        |> ProgramTest.expectViewHas
+                            [ Selector.all [ Selector.tag "td", Selector.containing [ Selector.text "proxyIntegration" ] ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing [ Selector.tag "td", Selector.text "authorization" ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing [ Selector.tag "td", Selector.text "vpcLink" ]
+                                ]
+                            ]
+            , test "it should not show up the action information " <|
+                \_ ->
+                    start
+                        |> ProgramTest.clickButton "path"
+                        |> ProgramTest.clickButton "GET"
+                        |> ProgramTest.clickButton "GET"
+                        |> ProgramTest.expectViewHasNot
+                            [ Selector.all [ Selector.tag "td", Selector.containing [ Selector.text "proxyIntegration" ] ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing [ Selector.tag "td", Selector.text "authorization" ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing [ Selector.tag "td", Selector.text "vpcLink" ]
+                                ]
+                            ]
+            ]
+        , describe "Test viewTextArea"
+            [ test "it should be div with form-group containing text-area with form-control" <|
+                \_ ->
+                    Main.viewTextArea ""
+                        |> div []
+                        |> Query.fromHtml
+                        |> Query.has
+                            [ Selector.all [ Selector.tag "div", Selector.class "form-group", Selector.containing [ Selector.tag "textarea", Selector.attribute (HtmlAttr.rows 30), Selector.class "form-control" ] ]
+                            , Selector.all [ Selector.tag "h3", Selector.containing [ Selector.text "API Routes File Configuration" ] ]
+                            ]
+            , test "it should load the rules from textArea" <|
+                \_ ->
+                    start
+                        |> ProgramTest.fillInTextarea fileExample01Data
+                        |> ProgramTest.expectViewHas
+                            [ Selector.all [ Selector.tag "h2", Selector.containing [ Selector.text "fileExample01Data" ] ]
+                            ]
+            , test "it should showup the loaded json in textarea" <|
+                \_ ->
+                    startCustom "fileExample01Data"
+                        |> ProgramTest.expectViewHas
+                            [ Selector.all [ Selector.tag "textarea", Selector.attribute (HtmlAttr.value "fileExample01Data") ]
+                            ]
+            , test "it should just show up textarea when the json file is with problemn" <|
+                \_ ->
+                    start
+                        |> ProgramTest.fillInTextarea """{"teste":"error"}"""
+                        |> ProgramTest.expectViewHasNot
+                            [ Selector.all [ Selector.tag "h2", Selector.containing [ Selector.text "fileExample01Data" ] ]
+                            ]
+            ]
+        , describe "Test viewBlueprint"
+            [ test "it should has a h2 with blueprint name and a paragraph with url_prefix." <|
+                \_ ->
+                    Main.viewBlueprint defaultBlueprint
+                        |> Query.fromHtml
+                        |> Query.has
+                            [ Selector.all [ Selector.tag "h2", Selector.containing [ Selector.all [ Selector.tag "span", Selector.text "Blueprint: " ], Selector.text "Blueprint" ] ]
+                            , Selector.all [ Selector.tag "p", Selector.containing [ Selector.all [ Selector.tag "span", Selector.text "Url Prefix: " ] ] ]
+                            , Selector.all [ Selector.tag "p", Selector.containing [ Selector.text "url_prefix" ] ]
+                            ]
+            ]
+        , describe "Test viewJsonErrorReport"
+            [ test "it should has a p with classes alert alert-warning." <|
+                \_ ->
+                    Main.viewJsonErrorReport defaultError
+                        |> Query.fromHtml
+                        |> Query.has
+                            [ Selector.all [ Selector.tag "p", Selector.classes [ "alert", "alert-warning" ], Selector.containing [ Selector.text "Some error happend" ] ]
+                            ]
+            , test "it should has not the code of error." <|
+                \_ ->
+                    Main.viewJsonErrorReport defaultError
+                        |> Query.fromHtml
+                        |> Query.hasNot
+                            [ Selector.all [ Selector.tag "p", Selector.classes [ "alert", "alert-warning" ], Selector.containing [ Selector.text "Problem with the given value:" ] ]
+                            ]
             ]
         ]

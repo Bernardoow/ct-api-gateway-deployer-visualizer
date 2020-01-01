@@ -10,6 +10,7 @@
   "author": "Bernardo Gomes <bgomesdeabreu@gmail.com> (https://bernardoow.github.io/blog/)",
   "license": "MIT",
   "devDependencies": {
+    "elm-live": "3.2.3",
     "elm-test": "^0.19.1-revision2"
   }
 }

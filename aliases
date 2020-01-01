@@ -1,0 +1,1 @@
+alias elm-live='./node_modules/.bin/elm-live --path-to-elm node_modules/.bin/elm src/Main.elm --open --start-page=./dev/custom.html -- --output=./dev/elm.js'

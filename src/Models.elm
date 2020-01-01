@@ -1,7 +1,14 @@
-module Models exposing (Action, Blueprint, Flask, Method, Resource, ViewModelAction, ViewModelMethod, actionDecoder, blueprintDecoder, corsDecoder, flaskDecoder, methodDecoder, queryParamsDecoder, resourceDecoder, viewModelActionDecoder, viewViewModelMethod)
+module Models exposing (Action, Blueprint, Flask, Method, Resource, ViewModelAction, ViewModelMethod, actionDecoder, apiRoutesFileConfigurationDecoder, blueprintDecoder, corsDecoder, flaskDecoder, methodDecoder, queryParamsDecoder, resourceDecoder, viewModelActionDecoder, viewViewModelMethod)
 
 import Dict
 import Json.Decode as Decode
+
+
+
+--type HttpMethods =
+--    HM_GET
+--    | HM_POST
+--    | HM_
 
 
 type alias Action =
@@ -68,7 +75,7 @@ type alias Method =
     { path : String
     , cors : Cors
     , queryParams : List QueryParam
-    , actions : List ViewModelAction
+    , actions : Dict.Dict String ViewModelAction
     }
 
 
@@ -78,7 +85,7 @@ methodDecoder =
         (Decode.field "path" Decode.string)
         (Decode.field "cors" corsDecoder)
         (Decode.field "queryParams" (Decode.list queryParamsDecoder))
-        (Decode.field "actions" (Decode.list viewModelActionDecoder))
+        (Decode.field "actions" (Decode.list viewModelActionDecoder |> Decode.andThen (\modelActionList -> List.map (\modelAction -> ( modelAction.action.type_, modelAction )) modelActionList |> Dict.fromList |> Decode.succeed)))
 
 
 type alias ViewModelMethod =
@@ -141,3 +148,8 @@ blueprintDecoder =
         (Decode.field "name" Decode.string)
         (Decode.field "url_prefix" Decode.string)
         (Decode.field "resources" (Decode.list resourceDecoder |> Decode.andThen (\resourceList -> List.map (\resource -> ( resource.name, resource )) resourceList |> Dict.fromList |> Decode.succeed)))
+
+
+apiRoutesFileConfigurationDecoder : Decode.Decoder Blueprint
+apiRoutesFileConfigurationDecoder =
+    Decode.field "blueprint" blueprintDecoder
