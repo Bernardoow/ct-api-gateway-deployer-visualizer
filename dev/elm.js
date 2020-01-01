@@ -5281,18 +5281,18 @@ var $elm$core$Dict$fromList = function (assocs) {
 var $elm$json$Json$Decode$list = _Json_decodeList;
 var $elm$json$Json$Decode$map3 = _Json_map3;
 var $author$project$Models$Resource = F3(
-	function (name, flask, methods) {
-		return {flask: flask, methods: methods, name: name};
+	function (name, resourceFlask, methods) {
+		return {methods: methods, name: name, resourceFlask: resourceFlask};
 	});
-var $author$project$Models$Flask = F3(
+var $author$project$Models$ResourceFlask = F3(
 	function (resourceModule, resourceClass, strictSlashes) {
 		return {resourceClass: resourceClass, resourceModule: resourceModule, strictSlashes: strictSlashes};
 	});
 var $elm$json$Json$Decode$bool = _Json_decodeBool;
 var $elm$json$Json$Decode$string = _Json_decodeString;
-var $author$project$Models$flaskDecoder = A4(
+var $author$project$Models$resourceFlaskDecoder = A4(
 	$elm$json$Json$Decode$map3,
-	$author$project$Models$Flask,
+	$author$project$Models$ResourceFlask,
 	A2($elm$json$Json$Decode$field, 'resourceModule', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'resourceClass', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'strictSlashes', $elm$json$Json$Decode$bool));
@@ -5383,7 +5383,7 @@ var $author$project$Models$resourceDecoder = A4(
 	$elm$json$Json$Decode$map3,
 	$author$project$Models$Resource,
 	A2($elm$json$Json$Decode$field, 'name', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'flask', $author$project$Models$flaskDecoder),
+	A2($elm$json$Json$Decode$field, 'flask', $author$project$Models$resourceFlaskDecoder),
 	A2(
 		$elm$json$Json$Decode$field,
 		'methods',
@@ -5470,18 +5470,6 @@ var $elm$core$Dict$get = F2(
 						continue get;
 				}
 			}
-		}
-	});
-var $elm$core$Debug$log = _Debug_log;
-var $elm$core$Result$mapError = F2(
-	function (f, result) {
-		if (result.$ === 'Ok') {
-			var v = result.a;
-			return $elm$core$Result$Ok(v);
-		} else {
-			var e = result.a;
-			return $elm$core$Result$Err(
-				f(e));
 		}
 	});
 var $elm$core$Basics$not = _Basics_not;
@@ -5603,17 +5591,6 @@ var $author$project$Main$update = F2(
 				}
 			case 'OnInputTextAreaApiRoutesFileConfiguration':
 				var configuration = msg.a;
-				var _v8 = A2(
-					$elm$core$Debug$log,
-					'Decode.decodeString apiRoutesFileConfigurationDecoder configuration',
-					A2($elm$json$Json$Decode$decodeString, $author$project$Models$apiRoutesFileConfigurationDecoder, configuration));
-				var _v9 = A2(
-					$elm$core$Debug$log,
-					'Decode.decodeString apiRoutesFileConfigurationDecoder configuration',
-					A2(
-						$elm$core$Result$mapError,
-						$elm$json$Json$Decode$errorToString,
-						A2($elm$json$Json$Decode$decodeString, $author$project$Models$apiRoutesFileConfigurationDecoder, configuration)));
 				return _Utils_Tuple2(
 					{
 						apiRoutesFileConfigurationRaw: configuration,
@@ -5656,6 +5633,17 @@ var $author$project$Main$OnClickMethod = F2(
 	});
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$i = _VirtualDom_node('i');
+var $author$project$Main$mountPathUrlUsingQueryParams = function (queryParamsList) {
+	return A2(
+		$elm$core$String$join,
+		'/',
+		A2(
+			$elm$core$List$map,
+			function (qp) {
+				return '<' + (qp.type_ + (':' + (qp.name + '>')));
+			},
+			queryParamsList));
+};
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -5679,6 +5667,8 @@ var $author$project$Main$OnClickAction = function (a) {
 var $elm$html$Html$table = _VirtualDom_node('table');
 var $elm$html$Html$tbody = _VirtualDom_node('tbody');
 var $elm$html$Html$td = _VirtualDom_node('td');
+var $elm$html$Html$th = _VirtualDom_node('th');
+var $elm$html$Html$thead = _VirtualDom_node('thead');
 var $elm$html$Html$tr = _VirtualDom_node('tr');
 var $author$project$Main$viewAction = F2(
 	function (_v0, vmAction) {
@@ -5712,16 +5702,67 @@ var $author$project$Main$viewAction = F2(
 							_List_fromArray(
 								[
 									$elm$html$Html$text(vmAction.action.type_)
+								])),
+							A2(
+							$elm$html$Html$span,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('badge badge-secondary float-right')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text(
+									vmAction.isOpened ? 'Hide Details' : 'Show Details')
 								]))
 						])),
 					vmAction.isOpened ? A2(
 					$elm$html$Html$table,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('table')
+							$elm$html$Html$Attributes$class('table table-bordered table-sm table table-action-info')
 						]),
 					_List_fromArray(
 						[
+							A2(
+							$elm$html$Html$thead,
+							_List_Nil,
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$tr,
+									_List_Nil,
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$th,
+											_List_Nil,
+											_List_fromArray(
+												[
+													$elm$html$Html$text('integration')
+												])),
+											A2(
+											$elm$html$Html$th,
+											_List_Nil,
+											_List_fromArray(
+												[
+													$elm$html$Html$text('proxyIntegration')
+												])),
+											A2(
+											$elm$html$Html$th,
+											_List_Nil,
+											_List_fromArray(
+												[
+													$elm$html$Html$text('vpcLink')
+												])),
+											A2(
+											$elm$html$Html$th,
+											_List_Nil,
+											_List_fromArray(
+												[
+													$elm$html$Html$text('authorization')
+												]))
+										]))
+								])),
 							A2(
 							$elm$html$Html$tbody,
 							_List_Nil,
@@ -5737,27 +5778,7 @@ var $author$project$Main$viewAction = F2(
 											_List_Nil,
 											_List_fromArray(
 												[
-													$elm$html$Html$text('integration')
-												])),
-											A2(
-											$elm$html$Html$td,
-											_List_Nil,
-											_List_fromArray(
-												[
 													$elm$html$Html$text(vmAction.action.integration)
-												]))
-										])),
-									A2(
-									$elm$html$Html$tr,
-									_List_Nil,
-									_List_fromArray(
-										[
-											A2(
-											$elm$html$Html$td,
-											_List_Nil,
-											_List_fromArray(
-												[
-													$elm$html$Html$text('proxyIntegration')
 												])),
 											A2(
 											$elm$html$Html$td,
@@ -5766,19 +5787,6 @@ var $author$project$Main$viewAction = F2(
 												[
 													$elm$html$Html$text(
 													vmAction.action.proxyIntegration ? 'True' : 'False')
-												]))
-										])),
-									A2(
-									$elm$html$Html$tr,
-									_List_Nil,
-									_List_fromArray(
-										[
-											A2(
-											$elm$html$Html$td,
-											_List_Nil,
-											_List_fromArray(
-												[
-													$elm$html$Html$text('vpcLink')
 												])),
 											A2(
 											$elm$html$Html$td,
@@ -5786,19 +5794,6 @@ var $author$project$Main$viewAction = F2(
 											_List_fromArray(
 												[
 													$elm$html$Html$text(vmAction.action.vpcLink)
-												]))
-										])),
-									A2(
-									$elm$html$Html$tr,
-									_List_Nil,
-									_List_fromArray(
-										[
-											A2(
-											$elm$html$Html$td,
-											_List_Nil,
-											_List_fromArray(
-												[
-													$elm$html$Html$text('authorization')
 												])),
 											A2(
 											$elm$html$Html$td,
@@ -5812,6 +5807,89 @@ var $author$project$Main$viewAction = F2(
 						])) : $elm$html$Html$text('')
 				]));
 	});
+var $author$project$Main$viewCors = function (cors) {
+	return A2(
+		$elm$html$Html$table,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('table'),
+				$elm$html$Html$Attributes$class('table-sm'),
+				$elm$html$Html$Attributes$class('table-bordered'),
+				$elm$html$Html$Attributes$class('mt-2')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$thead,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$tr,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$th,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Enable')
+									])),
+								A2(
+								$elm$html$Html$th,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Remove Default Response Templates')
+									])),
+								A2(
+								$elm$html$Html$th,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Allow Headers')
+									]))
+							]))
+					])),
+				A2(
+				$elm$html$Html$tbody,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$tr,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$td,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										cors.enable ? 'Yes' : 'No')
+									])),
+								A2(
+								$elm$html$Html$td,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										cors.removeDefaultResponseTemplates ? 'Yes' : 'No')
+									])),
+								A2(
+								$elm$html$Html$td,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										A2($elm$core$String$join, ', ', cors.allowHeaders))
+									]))
+							]))
+					]))
+			]));
+};
 var $author$project$Main$viewMethod = F2(
 	function (resourceKey, vmMethod) {
 		var iconClass = vmMethod.isOpened ? 'fa-arrow-up' : 'fa-arrow-down';
@@ -5830,7 +5908,8 @@ var $author$project$Main$viewMethod = F2(
 						]),
 					_List_fromArray(
 						[
-							$elm$html$Html$text(vmMethod.method.path),
+							$elm$html$Html$text(
+							vmMethod.method.path + ('/' + $author$project$Main$mountPathUrlUsingQueryParams(vmMethod.method.queryParams))),
 							vmMethod.isOpened ? A2(
 							$elm$html$Html$i,
 							_List_fromArray(
@@ -5847,11 +5926,12 @@ var $author$project$Main$viewMethod = F2(
 								]),
 							_List_Nil)
 						])),
+					vmMethod.isOpened ? $author$project$Main$viewCors(vmMethod.method.cors) : $elm$html$Html$text(''),
 					vmMethod.isOpened ? A2(
 					$elm$html$Html$div,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('list-group')
+							$elm$html$Html$Attributes$class('list-group mt-3')
 						]),
 					A2(
 						$elm$core$List$map,
@@ -5860,6 +5940,86 @@ var $author$project$Main$viewMethod = F2(
 						$elm$core$Dict$values(vmMethod.method.actions))) : $elm$html$Html$text('')
 				]));
 	});
+var $author$project$Main$viewResourceFlask = function (resourceFlask) {
+	return A2(
+		$elm$html$Html$table,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('table'),
+				$elm$html$Html$Attributes$class('table-sm'),
+				$elm$html$Html$Attributes$class('table-bordered')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$thead,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$tr,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$th,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Resource Module')
+									])),
+								A2(
+								$elm$html$Html$th,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Resource Class')
+									])),
+								A2(
+								$elm$html$Html$th,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Strict Slashes')
+									]))
+							]))
+					])),
+				A2(
+				$elm$html$Html$tbody,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$tr,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$td,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(resourceFlask.resourceModule)
+									])),
+								A2(
+								$elm$html$Html$td,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(resourceFlask.resourceClass)
+									])),
+								A2(
+								$elm$html$Html$td,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										resourceFlask.strictSlashes ? 'Yes' : 'No')
+									]))
+							]))
+					]))
+			]));
+};
 var $author$project$Main$viewResource = function (resource) {
 	var methods = A2(
 		$elm$core$List$map,
@@ -5880,6 +6040,7 @@ var $author$project$Main$viewResource = function (resource) {
 					[
 						$elm$html$Html$text(resource.name)
 					])),
+				$author$project$Main$viewResourceFlask(resource.resourceFlask),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(

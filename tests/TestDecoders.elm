@@ -3,7 +3,7 @@ module TestDecoders exposing (decodersTests)
 import Dict
 import Expect exposing (Expectation)
 import Json.Decode as Decode
-import Models exposing (actionDecoder, blueprintDecoder, corsDecoder, flaskDecoder, methodDecoder, queryParamsDecoder, resourceDecoder, viewModelActionDecoder, viewViewModelMethod)
+import Models exposing (actionDecoder, blueprintDecoder, corsDecoder, methodDecoder, queryParamsDecoder, resourceDecoder, resourceFlaskDecoder, viewModelActionDecoder, viewViewModelMethod)
 import Test exposing (..)
 import TestData exposing (actionData, blueprintData, corsData, flaskData, methodData, queryParamsData, resourceData)
 
@@ -125,7 +125,7 @@ decodersTests =
             \_ ->
                 let
                     result =
-                        Decode.decodeString flaskDecoder flaskData
+                        Decode.decodeString resourceFlaskDecoder flaskData
                             |> Result.toMaybe
                 in
                 Expect.equal result
@@ -145,7 +145,7 @@ decodersTests =
                 Expect.equal result
                     (Just
                         { name = "name"
-                        , flask =
+                        , resourceFlask =
                             { resourceModule = "resourceModule"
                             , resourceClass = "resourceClass"
                             , strictSlashes = False
@@ -193,7 +193,7 @@ decodersTests =
                             Dict.fromList
                                 [ ( "name"
                                   , { name = "name"
-                                    , flask =
+                                    , resourceFlask =
                                         { resourceModule = "resourceModule"
                                         , resourceClass = "resourceClass"
                                         , strictSlashes = False

@@ -7,7 +7,7 @@ import Html.Attributes as HtmlAttr
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Main as Main
-import Models exposing (Blueprint, Flask, Method, ViewModelAction, actionDecoder, blueprintDecoder, corsDecoder, flaskDecoder, methodDecoder, queryParamsDecoder, resourceDecoder)
+import Models exposing (Blueprint, Cors, Method, ResourceFlask, ViewModelAction, actionDecoder, blueprintDecoder, corsDecoder, methodDecoder, queryParamsDecoder, resourceDecoder, resourceFlaskDecoder)
 import ProgramTest exposing (ProgramTest)
 import Test exposing (..)
 import Test.Html.Query as Query
@@ -28,14 +28,6 @@ startCustom dataToLoad =
 start : ProgramTest Main.Model Main.Msg (Cmd Main.Msg)
 start =
     startCustom fileExample01Data
-
-
-defaultFlask : Flask
-defaultFlask =
-    { resourceModule = "resourceModule"
-    , resourceClass = "resourceClass"
-    , strictSlashes = False
-    }
 
 
 customViewModelAction : String -> ViewModelAction
@@ -86,6 +78,22 @@ defaultError =
     Decode.Failure "Some error happend" (Encode.int 2)
 
 
+defaultResourceFlask : ResourceFlask
+defaultResourceFlask =
+    { resourceModule = "resourceModule"
+    , resourceClass = "resourceClass"
+    , strictSlashes = True
+    }
+
+
+defaultCors : Cors
+defaultCors =
+    { enable = True
+    , removeDefaultResponseTemplates = True
+    , allowHeaders = [ "A", "B", "C" ]
+    }
+
+
 viewsTests : Test
 viewsTests =
     describe "Tests Views"
@@ -102,39 +110,49 @@ viewsTests =
         , describe "Test viewResource"
             [ test "it should has a title h3" <|
                 \_ ->
-                    Main.viewResource { name = "Resource 1", flask = defaultFlask, methods = Dict.empty }
+                    Main.viewResource { name = "Resource 1", resourceFlask = defaultResourceFlask, methods = Dict.empty }
                         |> Query.fromHtml
                         |> Query.has [ Selector.tag "h3", Selector.containing [ Selector.text "Resource 1" ] ]
             , test "it should has a div with class list-group" <|
                 \_ ->
-                    Main.viewResource { name = "Resource 1", flask = defaultFlask, methods = Dict.empty }
+                    Main.viewResource { name = "Resource 1", resourceFlask = defaultResourceFlask, methods = Dict.empty }
                         |> Query.fromHtml
                         |> Query.has [ Selector.tag "div", Selector.classes [ "list-group", "col-12" ] ]
+            , test "it should has a table for resourceFlask" <|
+                \_ ->
+                    Main.viewResource { name = "Resource 1", resourceFlask = defaultResourceFlask, methods = Dict.empty }
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.tag "table", Selector.classes [ "table", "table-sm", "table-bordered" ] ]
             ]
         , describe "Test viewMethod"
-            [ test "it should has a button with method information" <|
+            [ test "it should has a margin on actions methods" <|
                 \_ ->
-                    Main.viewMethod "" { method = { defaultMethod | path = "endpointA/" }, isOpened = False }
+                    Main.viewMethod "" { method = { defaultMethod | path = "endpointA" }, isOpened = True }
                         |> Query.fromHtml
-                        |> Query.has [ Selector.tag "button", Selector.classes [ "list-group-item", "list-group-item-action" ], Selector.containing [ Selector.text "endpointA/" ] ]
+                        |> Query.has [ Selector.tag "div", Selector.classes [ "list-group", "mt-3" ] ]
+            , test "it should has a button with method information" <|
+                \_ ->
+                    Main.viewMethod "" { method = { defaultMethod | path = "endpointA" }, isOpened = False }
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.tag "button", Selector.classes [ "list-group-item", "list-group-item-action" ], Selector.containing [ Selector.text "endpointA/<type:name>" ] ]
             , test "it should has a icon arrow down when isOpened is false" <|
                 \_ ->
-                    Main.viewMethod "" { method = { defaultMethod | path = "endpointA/" }, isOpened = False }
+                    Main.viewMethod "" { method = { defaultMethod | path = "endpointA" }, isOpened = False }
                         |> Query.fromHtml
                         |> Query.has [ Selector.tag "i", Selector.classes [ "fas", "fa-arrow-down", "float-right" ], Selector.containing [ Selector.text "endpointA/" ] ]
             , test "it should has a icon arrow down when isOpened is True" <|
                 \_ ->
-                    Main.viewMethod "" { method = { defaultMethod | path = "endpointA/" }, isOpened = True }
+                    Main.viewMethod "" { method = { defaultMethod | path = "endpointA" }, isOpened = True }
                         |> Query.fromHtml
                         |> Query.has [ Selector.tag "i", Selector.classes [ "fas", "fa-arrow-up", "float-right" ], Selector.containing [ Selector.text "endpointA/" ] ]
             , test "it should not show up the information about actions" <|
                 \_ ->
-                    Main.viewMethod "" { method = { defaultMethod | path = "endpointA/" }, isOpened = False }
+                    Main.viewMethod "" { method = { defaultMethod | path = "endpointA" }, isOpened = False }
                         |> Query.fromHtml
                         |> Query.hasNot [ Selector.tag "div", Selector.class "list-group" ]
             , test "it should show up the information about actions" <|
                 \_ ->
-                    Main.viewMethod "" { method = { defaultMethod | path = "endpointA/" }, isOpened = True }
+                    Main.viewMethod "" { method = { defaultMethod | path = "endpointA" }, isOpened = True }
                         |> Query.fromHtml
                         |> Query.has
                             [ Selector.tag "div"
@@ -161,6 +179,16 @@ viewsTests =
                     Main.viewAction defaultParamViewAction defaultViewModelAction
                         |> Query.fromHtml
                         |> Query.has [ Selector.tag "button", Selector.containing [ Selector.text "GET" ] ]
+            , test "it should has a span with text show details when isOpened is True" <|
+                \_ ->
+                    Main.viewAction defaultParamViewAction defaultViewModelAction
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.tag "span", Selector.classes [ "badge", "badge-secondary", "float-right" ], Selector.containing [ Selector.text "Show Details" ] ]
+            , test "it should has a span with text hide details when isOpened is False" <|
+                \_ ->
+                    Main.viewAction defaultParamViewAction { defaultViewModelAction | isOpened = True }
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.tag "span", Selector.classes [ "badge", "badge-secondary", "float-right" ], Selector.containing [ Selector.text "Hide Details" ] ]
             , test "it should has a button contain a classes badge badge-info when it action is get" <|
                 \_ ->
                     Main.viewAction defaultParamViewAction (customViewModelAction "GET")
@@ -194,7 +222,10 @@ viewsTests =
                         |> Query.each
                             (Expect.all
                                 [ Query.has
-                                    [ Selector.tag "table"
+                                    [ Selector.all
+                                        [ Selector.tag "table"
+                                        , Selector.classes [ "table", "table-bordered", "table-sm", "table-action-info" ]
+                                        ]
                                     ]
                                 , Query.has
                                     [ Selector.all
@@ -203,7 +234,7 @@ viewsTests =
                                         ]
                                     , Selector.all
                                         [ Selector.tag "tr"
-                                        , Selector.containing [ Selector.tag "td", Selector.text "integration" ]
+                                        , Selector.containing [ Selector.tag "th", Selector.text "integration" ]
                                         ]
                                     ]
                                 , Query.has
@@ -221,7 +252,7 @@ viewsTests =
                                         ]
                                     , Selector.all
                                         [ Selector.tag "tr"
-                                        , Selector.containing [ Selector.tag "td", Selector.text "proxyIntegration" ]
+                                        , Selector.containing [ Selector.tag "th", Selector.text "proxyIntegration" ]
                                         ]
                                     ]
                                 , Query.has
@@ -231,7 +262,7 @@ viewsTests =
                                         ]
                                     , Selector.all
                                         [ Selector.tag "tr"
-                                        , Selector.containing [ Selector.tag "td", Selector.text "vpcLink" ]
+                                        , Selector.containing [ Selector.tag "th", Selector.text "vpcLink" ]
                                         ]
                                     ]
                                 , Query.has
@@ -241,25 +272,32 @@ viewsTests =
                                         ]
                                     , Selector.all
                                         [ Selector.tag "tr"
-                                        , Selector.containing [ Selector.tag "td", Selector.text "authorization" ]
+                                        , Selector.containing [ Selector.tag "th", Selector.text "authorization" ]
                                         ]
                                     ]
                                 ]
                             )
+            , test "the table of information should has this classes " <|
+                \_ ->
+                    Main.viewAction defaultParamViewAction { defaultViewModelAction | isOpened = True }
+                        |> Query.fromHtml
+                        |> Query.has
+                            [ Selector.all [ Selector.tag "table", Selector.classes [ "table", "table-bordered", "table-sm", "table-action-info" ] ]
+                            ]
             , test "it should show up the action information " <|
                 \_ ->
                     start
                         |> ProgramTest.clickButton "path"
                         |> ProgramTest.clickButton "GET"
                         |> ProgramTest.expectViewHas
-                            [ Selector.all [ Selector.tag "td", Selector.containing [ Selector.text "proxyIntegration" ] ]
+                            [ Selector.all [ Selector.tag "th", Selector.containing [ Selector.text "proxyIntegration" ] ]
                             , Selector.all
                                 [ Selector.tag "tr"
-                                , Selector.containing [ Selector.tag "td", Selector.text "authorization" ]
+                                , Selector.containing [ Selector.tag "th", Selector.text "authorization" ]
                                 ]
                             , Selector.all
                                 [ Selector.tag "tr"
-                                , Selector.containing [ Selector.tag "td", Selector.text "vpcLink" ]
+                                , Selector.containing [ Selector.tag "th", Selector.text "vpcLink" ]
                                 ]
                             ]
             , test "it should not show up the action information " <|
@@ -272,11 +310,11 @@ viewsTests =
                             [ Selector.all [ Selector.tag "td", Selector.containing [ Selector.text "proxyIntegration" ] ]
                             , Selector.all
                                 [ Selector.tag "tr"
-                                , Selector.containing [ Selector.tag "td", Selector.text "authorization" ]
+                                , Selector.containing [ Selector.tag "th", Selector.text "authorization" ]
                                 ]
                             , Selector.all
                                 [ Selector.tag "tr"
-                                , Selector.containing [ Selector.tag "td", Selector.text "vpcLink" ]
+                                , Selector.containing [ Selector.tag "th", Selector.text "vpcLink" ]
                                 ]
                             ]
             ]
@@ -336,6 +374,106 @@ viewsTests =
                         |> Query.fromHtml
                         |> Query.hasNot
                             [ Selector.all [ Selector.tag "p", Selector.classes [ "alert", "alert-warning" ], Selector.containing [ Selector.text "Problem with the given value:" ] ]
+                            ]
+            ]
+        , describe "Test viewResourceFlask"
+            [ test "it should has table with ths for each attribute." <|
+                \_ ->
+                    Main.viewResourceFlask defaultResourceFlask
+                        |> Query.fromHtml
+                        |> Query.has
+                            [ Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "th", Selector.containing [ Selector.text "Resource Module" ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "td", Selector.containing [ Selector.text "resourceModule" ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "th", Selector.containing [ Selector.text "Resource Class" ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "td", Selector.containing [ Selector.text "resourceClass" ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "th", Selector.containing [ Selector.text "Strict Slashes" ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "td", Selector.containing [ Selector.text "Yes" ] ]
+                                    ]
+                                ]
+                            ]
+            ]
+        , describe "Test viewCors"
+            [ test "it should has table with ths for each attribute." <|
+                \_ ->
+                    Main.viewCors defaultCors
+                        |> Query.fromHtml
+                        |> Query.has
+                            [ Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered", "mt-2" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "th", Selector.containing [ Selector.text "Enable" ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered", "mt-2" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "td", Selector.containing [ Selector.text "Yes" ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered", "mt-2" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "th", Selector.containing [ Selector.text "Remove Default Response Templates" ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered", "mt-2" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "td", Selector.containing [ Selector.text "Yes" ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered", "mt-2" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "th", Selector.containing [ Selector.text "Allow Headers" ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered", "mt-2" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "td", Selector.containing [ Selector.text "A, B, C" ] ]
+                                    ]
+                                ]
                             ]
             ]
         ]

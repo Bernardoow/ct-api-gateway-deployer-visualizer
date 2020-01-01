@@ -1,4 +1,24 @@
-module Models exposing (Action, Blueprint, Flask, Method, Resource, ViewModelAction, ViewModelMethod, actionDecoder, apiRoutesFileConfigurationDecoder, blueprintDecoder, corsDecoder, flaskDecoder, methodDecoder, queryParamsDecoder, resourceDecoder, viewModelActionDecoder, viewViewModelMethod)
+module Models exposing
+    ( Action
+    , Blueprint
+    , Cors
+    , Method
+    , QueryParam
+    , Resource
+    , ResourceFlask
+    , ViewModelAction
+    , ViewModelMethod
+    , actionDecoder
+    , apiRoutesFileConfigurationDecoder
+    , blueprintDecoder
+    , corsDecoder
+    , methodDecoder
+    , queryParamsDecoder
+    , resourceDecoder
+    , resourceFlaskDecoder
+    , viewModelActionDecoder
+    , viewViewModelMethod
+    )
 
 import Dict
 import Json.Decode as Decode
@@ -101,16 +121,16 @@ viewViewModelMethod =
         (Decode.succeed False)
 
 
-type alias Flask =
+type alias ResourceFlask =
     { resourceModule : String
     , resourceClass : String
     , strictSlashes : Bool
     }
 
 
-flaskDecoder : Decode.Decoder Flask
-flaskDecoder =
-    Decode.map3 Flask
+resourceFlaskDecoder : Decode.Decoder ResourceFlask
+resourceFlaskDecoder =
+    Decode.map3 ResourceFlask
         (Decode.field "resourceModule" Decode.string)
         (Decode.field "resourceClass" Decode.string)
         (Decode.field "strictSlashes" Decode.bool)
@@ -118,7 +138,7 @@ flaskDecoder =
 
 type alias Resource =
     { name : String
-    , flask : Flask
+    , resourceFlask : ResourceFlask
     , methods : Dict.Dict String ViewModelMethod
     }
 
@@ -127,7 +147,7 @@ resourceDecoder : Decode.Decoder Resource
 resourceDecoder =
     Decode.map3 Resource
         (Decode.field "name" Decode.string)
-        (Decode.field "flask" flaskDecoder)
+        (Decode.field "flask" resourceFlaskDecoder)
         (Decode.field "methods"
             (Decode.list viewViewModelMethod
                 |> Decode.andThen (\methodsList -> List.map (\item -> ( item.method.path, item )) methodsList |> Dict.fromList |> Decode.succeed)

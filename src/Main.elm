@@ -1,12 +1,12 @@
-module Main exposing (Model, Msg(..), init, main, update, view, viewAction, viewBlueprint, viewJsonErrorReport, viewMethod, viewResource, viewTextArea)
+module Main exposing (Model, Msg(..), init, main, mountPathUrlUsingQueryParams, update, view, viewAction, viewBlueprint, viewCors, viewJsonErrorReport, viewMethod, viewResource, viewResourceFlask, viewTextArea)
 
 import Browser
 import Dict
-import Html exposing (Html, button, div, h1, h2, h3, i, img, p, pre, span, table, tbody, td, text, textarea, tr)
+import Html exposing (Html, button, div, h1, h2, h3, i, img, p, pre, span, table, tbody, td, text, textarea, th, thead, tr)
 import Html.Attributes exposing (class, rows, src, value)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode as Decode
-import Models exposing (Blueprint, Resource, ViewModelAction, ViewModelMethod, apiRoutesFileConfigurationDecoder)
+import Models exposing (Blueprint, Cors, QueryParam, Resource, ResourceFlask, ViewModelAction, ViewModelMethod, apiRoutesFileConfigurationDecoder)
 import TestData exposing (fileExample01Data)
 
 
@@ -18,6 +18,12 @@ dictUpdate : { key : String, itemUpdated : a, dict : Dict.Dict String a } -> Dic
 dictUpdate { key, itemUpdated, dict } =
     --TODO TEST
     Dict.insert key itemUpdated dict
+
+
+mountPathUrlUsingQueryParams : List QueryParam -> String
+mountPathUrlUsingQueryParams queryParamsList =
+    List.map (\qp -> "<" ++ qp.type_ ++ ":" ++ qp.name ++ ">") queryParamsList
+        |> String.join "/"
 
 
 
@@ -154,13 +160,6 @@ update msg model =
                     ( model, Cmd.none )
 
         OnInputTextAreaApiRoutesFileConfiguration configuration ->
-            let
-                _ =
-                    Debug.log "Decode.decodeString apiRoutesFileConfigurationDecoder configuration" <| Decode.decodeString apiRoutesFileConfigurationDecoder configuration
-
-                _ =
-                    Debug.log "Decode.decodeString apiRoutesFileConfigurationDecoder configuration" <| Result.mapError Decode.errorToString <| Decode.decodeString apiRoutesFileConfigurationDecoder configuration
-            in
             ( { blueprint = Decode.decodeString apiRoutesFileConfigurationDecoder configuration, apiRoutesFileConfigurationRaw = configuration }, Cmd.none )
 
         _ ->
@@ -201,16 +200,29 @@ viewAction { resourcekey, methodKey } vmAction =
             , class "list-group-item"
             , class "list-group-item-action"
             ]
-            [ span [ class "badge", class actionBadgeSpecificClass ] [ text vmAction.action.type_ ] ]
+            [ span [ class "badge", class actionBadgeSpecificClass ] [ text vmAction.action.type_ ]
+            , span [ class "badge badge-secondary float-right" ]
+                [ text <|
+                    if vmAction.isOpened then
+                        "Hide Details"
+
+                    else
+                        "Show Details"
+                ]
+            ]
         , if vmAction.isOpened then
-            table [ class "table" ]
-                [ tbody []
+            table [ class "table table-bordered table-sm table table-action-info" ]
+                [ thead []
                     [ tr []
-                        [ td [] [ text "integration" ]
-                        , td [] [ text vmAction.action.integration ]
+                        [ th [] [ text "integration" ]
+                        , th [] [ text "proxyIntegration" ]
+                        , th [] [ text "vpcLink" ]
+                        , th [] [ text "authorization" ]
                         ]
-                    , tr []
-                        [ td [] [ text "proxyIntegration" ]
+                    ]
+                , tbody []
+                    [ tr []
+                        [ td [] [ text vmAction.action.integration ]
                         , td []
                             [ text <|
                                 if vmAction.action.proxyIntegration then
@@ -219,15 +231,7 @@ viewAction { resourcekey, methodKey } vmAction =
                                 else
                                     "False"
                             ]
-                        ]
-                    , tr
-                        []
-                        [ td [] [ text "vpcLink" ]
                         , td [] [ text vmAction.action.vpcLink ]
-                        ]
-                    , tr
-                        []
-                        [ td [] [ text "authorization" ]
                         , td [] [ text vmAction.action.authorization ]
                         ]
                     ]
@@ -250,7 +254,7 @@ viewMethod resourceKey vmMethod =
     in
     div []
         [ button [ onClick <| OnClickMethod resourceKey vmMethod.method.path, class "list-group-item list-group-item-action" ]
-            [ text vmMethod.method.path
+            [ text <| vmMethod.method.path ++ "/" ++ mountPathUrlUsingQueryParams vmMethod.method.queryParams
             , if vmMethod.isOpened then
                 i [ class "float-right fas", class iconClass ] []
 
@@ -258,9 +262,14 @@ viewMethod resourceKey vmMethod =
                 i [ class "float-right fas", class iconClass ] []
             ]
         , if vmMethod.isOpened then
+            viewCors vmMethod.method.cors
+
+          else
+            text ""
+        , if vmMethod.isOpened then
             Dict.values vmMethod.method.actions
                 |> List.map (viewAction { resourcekey = resourceKey, methodKey = vmMethod.method.path })
-                |> div [ class "list-group" ]
+                |> div [ class "list-group mt-3" ]
 
           else
             text ""
@@ -276,6 +285,7 @@ viewResource resource =
     in
     div [ class "row col-12" ]
         [ h3 [] [ text resource.name ]
+        , viewResourceFlask resource.resourceFlask
         , div [ class "list-group col-12" ] methods
         ]
 
@@ -317,6 +327,67 @@ viewVersion : Html Msg
 viewVersion =
     --TODO TEST
     p [ class "text-center" ] [ text "Bernardo Gomes -  Version 0.1" ]
+
+
+viewResourceFlask : ResourceFlask -> Html Msg
+viewResourceFlask resourceFlask =
+    table [ class "table", class "table-sm", class "table-bordered" ]
+        [ thead []
+            [ tr []
+                [ th [] [ text "Resource Module" ]
+                , th [] [ text "Resource Class" ]
+                , th [] [ text "Strict Slashes" ]
+                ]
+            ]
+        , tbody []
+            [ tr []
+                [ td [] [ text resourceFlask.resourceModule ]
+                , td [] [ text resourceFlask.resourceClass ]
+                , td []
+                    [ text <|
+                        if resourceFlask.strictSlashes then
+                            "Yes"
+
+                        else
+                            "No"
+                    ]
+                ]
+            ]
+        ]
+
+
+viewCors : Cors -> Html Msg
+viewCors cors =
+    table [ class "table", class "table-sm", class "table-bordered", class "mt-2" ]
+        [ thead []
+            [ tr []
+                [ th [] [ text "Enable" ]
+                , th [] [ text "Remove Default Response Templates" ]
+                , th [] [ text "Allow Headers" ]
+                ]
+            ]
+        , tbody []
+            [ tr []
+                [ td []
+                    [ text <|
+                        if cors.enable then
+                            "Yes"
+
+                        else
+                            "No"
+                    ]
+                , td []
+                    [ text <|
+                        if cors.removeDefaultResponseTemplates then
+                            "Yes"
+
+                        else
+                            "No"
+                    ]
+                , td [] [ text <| String.join ", " cors.allowHeaders ]
+                ]
+            ]
+        ]
 
 
 view : Model -> Html Msg
