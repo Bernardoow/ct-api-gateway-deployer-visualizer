@@ -6,7 +6,6 @@
      steps:
        - checkout
        - run: npm ci
-       - run: ls
        - run: ./node_modules/.bin/elm-test --compiler ./node_modules/.bin/elm
  workflows:
    version: 2
