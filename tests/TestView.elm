@@ -67,9 +67,9 @@ defaultMethod =
 
 defaultBlueprint : Blueprint
 defaultBlueprint =
-    { name = "Blueprint"
-    , url_prefix = "url_prefix"
-    , resources = Dict.empty
+    { name = Just "Blueprint"
+    , url_prefix = Just "url_prefix"
+    , resources = Just Dict.empty
     }
 
 
@@ -421,6 +421,17 @@ viewsTests =
                             [ Selector.all [ Selector.tag "h2", Selector.containing [ Selector.all [ Selector.tag "span", Selector.text "Blueprint: " ], Selector.text "Blueprint" ] ]
                             , Selector.all [ Selector.tag "p", Selector.containing [ Selector.all [ Selector.tag "span", Selector.text "Url Prefix: " ] ] ]
                             , Selector.all [ Selector.tag "p", Selector.containing [ Selector.text "url_prefix" ] ]
+                            ]
+            , test "it should has information about property nullable" <|
+                \_ ->
+                    Main.viewBlueprint { defaultBlueprint | name = Nothing, url_prefix = Nothing, resources = Nothing }
+                        |> Query.fromHtml
+                        |> Query.has
+                            [ Selector.all [ Selector.tag "h2", Selector.containing [ Selector.all [ Selector.tag "span", Selector.text "Blueprint: " ] ] ]
+                            , Selector.all [ Selector.tag "h2", Selector.containing [ Selector.all [ Selector.text "Propriedade não informada." ] ] ]
+                            , Selector.all [ Selector.tag "p", Selector.containing [ Selector.all [ Selector.tag "span", Selector.text "Url Prefix: " ] ] ]
+                            , Selector.all [ Selector.tag "p", Selector.containing [ Selector.text "Propriedade não informada." ] ]
+                            , Selector.all [ Selector.tag "p", Selector.classes [ "alert", "alert-warning", "resources" ], Selector.containing [ Selector.text "Resources não informados." ] ]
                             ]
             ]
         , describe "Test viewJsonErrorReport"

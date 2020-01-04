@@ -1,4 +1,4 @@
-module TestData exposing (actionData, actionDataWithNulls, blueprintData, corsData, corsDataWithNulls, fileExample01Data, flaskData, methodData, methodDataWithQueryParamsNull, queryParamsData, resourceData)
+module TestData exposing (actionData, actionDataWithNulls, blueprintData, blueprintDataWithNulls, corsData, corsDataWithNulls, fileExample01Data, flaskData, methodData, methodDataWithQueryParamsNull, queryParamsData, resourceData)
 
 
 actionData : String
@@ -49,6 +49,11 @@ resourceData =
 blueprintData : String
 blueprintData =
     """{"name": "name", "url_prefix": "url_prefix", "resources": [""" ++ resourceData ++ """]}"""
+
+
+blueprintDataWithNulls : String
+blueprintDataWithNulls =
+    """{"name": null, "url_prefix": null}"""
 
 
 fileExample01Data : String

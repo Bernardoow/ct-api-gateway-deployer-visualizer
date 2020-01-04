@@ -156,18 +156,29 @@ resourceDecoder =
 
 
 type alias Blueprint =
-    { name : String
-    , url_prefix : String
-    , resources : Dict.Dict String Resource
+    { name : Maybe String
+    , url_prefix : Maybe String
+    , resources : Maybe (Dict.Dict String Resource)
     }
 
 
 blueprintDecoder : Decode.Decoder Blueprint
 blueprintDecoder =
     Decode.map3 Blueprint
-        (Decode.field "name" Decode.string)
-        (Decode.field "url_prefix" Decode.string)
-        (Decode.field "resources" (Decode.list resourceDecoder |> Decode.andThen (\resourceList -> List.map (\resource -> ( resource.name, resource )) resourceList |> Dict.fromList |> Decode.succeed)))
+        (Decode.maybe (Decode.field "name" Decode.string))
+        (Decode.maybe (Decode.field "url_prefix" Decode.string))
+        (Decode.maybe
+            (Decode.field "resources"
+                (Decode.list resourceDecoder
+                    |> Decode.andThen
+                        (\resourceList ->
+                            List.map (\resource -> ( resource.name, resource )) resourceList
+                                |> Dict.fromList
+                                |> Decode.succeed
+                        )
+                )
+            )
+        )
 
 
 apiRoutesFileConfigurationDecoder : Decode.Decoder Blueprint

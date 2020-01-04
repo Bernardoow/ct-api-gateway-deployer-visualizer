@@ -14,10 +14,16 @@ import TestData exposing (fileExample01Data)
 ---- HELPERS ----
 
 
-dictUpdate : { key : String, itemUpdated : a, dict : Dict.Dict String a } -> Dict.Dict String a
-dictUpdate { key, itemUpdated, dict } =
+dictUpdate : { key : String, itemUpdated : a, maybeDict : Maybe (Dict.Dict String a) } -> Maybe (Dict.Dict String a)
+dictUpdate { key, itemUpdated, maybeDict } =
     --TODO TEST
-    Dict.insert key itemUpdated dict
+    --Maybe.map (\d -> Dict.insert key itemUpdated d) maybeDict
+    case maybeDict of
+        Just dict ->
+            Dict.insert key itemUpdated dict |> Just
+
+        Nothing ->
+            maybeDict
 
 
 mountPathUrlUsingQueryParams : List QueryParam -> String
@@ -55,7 +61,7 @@ update msg model =
         OnClickMethod { resourcekey, methodKey } ->
             case model.blueprint of
                 Ok blueprint ->
-                    case Dict.get resourcekey blueprint.resources of
+                    case Dict.get resourcekey (Maybe.withDefault Dict.empty blueprint.resources) of
                         Just resource ->
                             case Dict.get methodKey resource.methods of
                                 Just method ->
@@ -64,7 +70,7 @@ update msg model =
                                             dictUpdate
                                                 { key = methodKey
                                                 , itemUpdated = { method | isOpened = method.isOpened |> not }
-                                                , dict = resource.methods
+                                                , maybeDict = Just resource.methods
                                                 }
 
                                         resourcesUpdated =
@@ -72,9 +78,9 @@ update msg model =
                                                 { key = resourcekey
                                                 , itemUpdated =
                                                     { resource
-                                                        | methods = methodsUpdated
+                                                        | methods = Maybe.withDefault Dict.empty methodsUpdated
                                                     }
-                                                , dict = blueprint.resources
+                                                , maybeDict = blueprint.resources
                                                 }
                                     in
                                     ( { model
@@ -99,7 +105,7 @@ update msg model =
         OnClickAction { resourcekey, methodKey, actionKey } ->
             case model.blueprint of
                 Ok blueprint ->
-                    case Dict.get resourcekey blueprint.resources of
+                    case Dict.get resourcekey (Maybe.withDefault Dict.empty blueprint.resources) of
                         Just resource ->
                             case Dict.get methodKey resource.methods of
                                 Just vmMethod ->
@@ -110,20 +116,20 @@ update msg model =
                                                     dictUpdate
                                                         { key = actionKey
                                                         , itemUpdated = { vmAction | isOpened = vmAction.isOpened |> not }
-                                                        , dict = vmMethod.method.actions
+                                                        , maybeDict = Just vmMethod.method.actions
                                                         }
 
                                                 method =
                                                     vmMethod.method
 
                                                 methodUpdated =
-                                                    { method | actions = actionsUpdated }
+                                                    { method | actions = Maybe.withDefault Dict.empty actionsUpdated }
 
                                                 methodsUpdated =
                                                     dictUpdate
                                                         { key = methodKey
                                                         , itemUpdated = { vmMethod | method = methodUpdated }
-                                                        , dict = resource.methods
+                                                        , maybeDict = Just resource.methods
                                                         }
 
                                                 resourcesUpdated =
@@ -131,9 +137,9 @@ update msg model =
                                                         { key = resourcekey
                                                         , itemUpdated =
                                                             { resource
-                                                                | methods = methodsUpdated
+                                                                | methods = Maybe.withDefault Dict.empty methodsUpdated
                                                             }
-                                                        , dict = blueprint.resources
+                                                        , maybeDict = blueprint.resources
                                                         }
                                             in
                                             ( { model
@@ -307,14 +313,20 @@ viewTextArea apiRoutesFileConfigurationRaw =
 viewBlueprint : Blueprint -> Html Msg
 viewBlueprint blueprint =
     let
-        resources =
-            Dict.values blueprint.resources
-                |> List.map viewResource
+        resourcesHtml =
+            case blueprint.resources of
+                Just resources ->
+                    Dict.values resources
+                        |> List.map viewResource
+                        |> div [ class "list-group" ]
+
+                Nothing ->
+                    p [ class "alert alert-warning resources" ] [ text "Resources não informados." ]
     in
     div [ class "col" ]
-        [ h2 [] [ span [] [ text "Blueprint: " ], text blueprint.name ]
-        , p [] [ span [] [ text "Url Prefix: " ], text blueprint.url_prefix ]
-        , div [ class "list-group" ] resources
+        [ h2 [] [ span [] [ text "Blueprint: " ], text <| Maybe.withDefault "Propriedade não informada." blueprint.name ]
+        , p [] [ span [] [ text "Url Prefix: " ], text <| Maybe.withDefault "Propriedade não informada." blueprint.url_prefix ]
+        , resourcesHtml
         ]
 
 

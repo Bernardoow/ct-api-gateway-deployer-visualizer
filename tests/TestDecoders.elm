@@ -3,9 +3,33 @@ module TestDecoders exposing (decodersTests)
 import Dict
 import Expect exposing (Expectation)
 import Json.Decode as Decode
-import Models exposing (actionDecoder, blueprintDecoder, corsDecoder, methodDecoder, queryParamsDecoder, resourceDecoder, resourceFlaskDecoder, viewModelActionDecoder, viewViewModelMethod)
+import Models
+    exposing
+        ( actionDecoder
+        , blueprintDecoder
+        , corsDecoder
+        , methodDecoder
+        , queryParamsDecoder
+        , resourceDecoder
+        , resourceFlaskDecoder
+        , viewModelActionDecoder
+        , viewViewModelMethod
+        )
 import Test exposing (..)
-import TestData exposing (actionData, actionDataWithNulls, blueprintData, corsData, corsDataWithNulls, flaskData, methodData, methodDataWithQueryParamsNull, queryParamsData, resourceData)
+import TestData
+    exposing
+        ( actionData
+        , actionDataWithNulls
+        , blueprintData
+        , blueprintDataWithNulls
+        , corsData
+        , corsDataWithNulls
+        , flaskData
+        , methodData
+        , methodDataWithQueryParamsNull
+        , queryParamsData
+        , resourceData
+        )
 
 
 decodersTests : Test
@@ -239,46 +263,61 @@ decodersTests =
                 in
                 Expect.equal result
                     (Just
-                        { name = "name"
-                        , url_prefix = "url_prefix"
+                        { name = Just "name"
+                        , url_prefix = Just "url_prefix"
                         , resources =
-                            Dict.fromList
-                                [ ( "name"
-                                  , { name = "name"
-                                    , resourceFlask =
-                                        { resourceModule = "resourceModule"
-                                        , resourceClass = "resourceClass"
-                                        , strictSlashes = False
-                                        }
-                                    , methods =
-                                        Dict.fromList
-                                            [ ( "path"
-                                              , { method =
-                                                    { path = "path"
-                                                    , cors = { enable = Just True, removeDefaultResponseTemplates = Just True, allowHeaders = Just [ "header1" ] }
-                                                    , queryParams = [ { name = "name", type_ = "type" } ]
-                                                    , actions =
-                                                        Dict.fromList
-                                                            [ ( "GET"
-                                                              , { action =
-                                                                    { type_ = "GET"
-                                                                    , integration = Just "integration"
-                                                                    , proxyIntegration = Just True
-                                                                    , vpcLink = Just "vpcLink"
-                                                                    , authorization = Just "authorization"
+                            Just <|
+                                Dict.fromList
+                                    [ ( "name"
+                                      , { name = "name"
+                                        , resourceFlask =
+                                            { resourceModule = "resourceModule"
+                                            , resourceClass = "resourceClass"
+                                            , strictSlashes = False
+                                            }
+                                        , methods =
+                                            Dict.fromList
+                                                [ ( "path"
+                                                  , { method =
+                                                        { path = "path"
+                                                        , cors = { enable = Just True, removeDefaultResponseTemplates = Just True, allowHeaders = Just [ "header1" ] }
+                                                        , queryParams = [ { name = "name", type_ = "type" } ]
+                                                        , actions =
+                                                            Dict.fromList
+                                                                [ ( "GET"
+                                                                  , { action =
+                                                                        { type_ = "GET"
+                                                                        , integration = Just "integration"
+                                                                        , proxyIntegration = Just True
+                                                                        , vpcLink = Just "vpcLink"
+                                                                        , authorization = Just "authorization"
+                                                                        }
+                                                                    , isOpened = False
                                                                     }
-                                                                , isOpened = False
-                                                                }
-                                                              )
-                                                            ]
+                                                                  )
+                                                                ]
+                                                        }
+                                                    , isOpened = False
                                                     }
-                                                , isOpened = False
-                                                }
-                                              )
-                                            ]
-                                    }
-                                  )
-                                ]
+                                                  )
+                                                ]
+                                        }
+                                      )
+                                    ]
+                        }
+                    )
+        , test "Decoder Blueprint With Nulls" <|
+            \_ ->
+                let
+                    result =
+                        Decode.decodeString blueprintDecoder blueprintDataWithNulls
+                            |> Result.toMaybe
+                in
+                Expect.equal result
+                    (Just
+                        { name = Nothing
+                        , url_prefix = Nothing
+                        , resources = Nothing
                         }
                     )
         ]
