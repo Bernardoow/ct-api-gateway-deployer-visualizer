@@ -44,8 +44,7 @@ init dataToLoad =
 
 
 type Msg
-    = NoOp
-    | OnClickMethod String String
+    = OnClickMethod { resourcekey : String, methodKey : String }
     | OnClickAction { resourcekey : String, methodKey : String, actionKey : String }
     | OnInputTextAreaApiRoutesFileConfiguration String
 
@@ -53,7 +52,7 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        OnClickMethod resourcekey methodKey ->
+        OnClickMethod { resourcekey, methodKey } ->
             case model.blueprint of
                 Ok blueprint ->
                     case Dict.get resourcekey blueprint.resources of
@@ -162,9 +161,6 @@ update msg model =
         OnInputTextAreaApiRoutesFileConfiguration configuration ->
             ( { blueprint = Decode.decodeString apiRoutesFileConfigurationDecoder configuration, apiRoutesFileConfigurationRaw = configuration }, Cmd.none )
 
-        _ ->
-            ( model, Cmd.none )
-
 
 
 ---- VIEW ----
@@ -222,17 +218,26 @@ viewAction { resourcekey, methodKey } vmAction =
                     ]
                 , tbody []
                     [ tr []
-                        [ td [] [ text vmAction.action.integration ]
-                        , td []
+                        [ td [ class "integration" ] [ text <| Maybe.withDefault "Propriedade não informada." vmAction.action.integration ]
+                        , td [ class "proxyIntegration" ]
                             [ text <|
-                                if vmAction.action.proxyIntegration then
-                                    "True"
+                                Maybe.withDefault "Propriedade não informada." <|
+                                    Maybe.map
+                                        (\proxyIntegration ->
+                                            if proxyIntegration then
+                                                "True"
 
-                                else
-                                    "False"
+                                            else
+                                                "False"
+                                        )
+                                        vmAction.action.proxyIntegration
                             ]
-                        , td [] [ text vmAction.action.vpcLink ]
-                        , td [] [ text vmAction.action.authorization ]
+                        , td [ class "vpcLink" ]
+                            [ text <| Maybe.withDefault "Propriedade não informada." vmAction.action.vpcLink
+                            ]
+                        , td [ class "authorization" ]
+                            [ text <| Maybe.withDefault "Propriedade não informada." vmAction.action.authorization
+                            ]
                         ]
                     ]
                 ]
@@ -253,7 +258,7 @@ viewMethod resourceKey vmMethod =
                 "fa-arrow-down"
     in
     div []
-        [ button [ onClick <| OnClickMethod resourceKey vmMethod.method.path, class "list-group-item list-group-item-action" ]
+        [ button [ onClick <| OnClickMethod { resourcekey = resourceKey, methodKey = vmMethod.method.path }, class "list-group-item list-group-item-action" ]
             [ text <| vmMethod.method.path ++ "/" ++ mountPathUrlUsingQueryParams vmMethod.method.queryParams
             , if vmMethod.isOpened then
                 i [ class "float-right fas", class iconClass ] []
@@ -368,23 +373,37 @@ viewCors cors =
             ]
         , tbody []
             [ tr []
-                [ td []
+                [ td [ class "enable" ]
                     [ text <|
-                        if cors.enable then
-                            "Yes"
+                        Maybe.withDefault "Propriedade não informada." <|
+                            Maybe.map
+                                (\enable ->
+                                    if enable then
+                                        "Yes"
 
-                        else
-                            "No"
+                                    else
+                                        "No"
+                                )
+                                cors.enable
                     ]
-                , td []
+                , td [ class "removeDefaultResponseTemplates" ]
                     [ text <|
-                        if cors.removeDefaultResponseTemplates then
-                            "Yes"
+                        Maybe.withDefault "Propriedade não informada." <|
+                            Maybe.map
+                                (\removeDefaultResponseTemplates ->
+                                    if removeDefaultResponseTemplates then
+                                        "Yes"
 
-                        else
-                            "No"
+                                    else
+                                        "No"
+                                )
+                                cors.removeDefaultResponseTemplates
                     ]
-                , td [] [ text <| String.join ", " cors.allowHeaders ]
+                , td [ class "allowHeaders" ]
+                    [ text <|
+                        Maybe.withDefault "Propriedade não informada." <|
+                            Maybe.map (\allowHeaders -> String.join ", " allowHeaders) cors.allowHeaders
+                    ]
                 ]
             ]
         ]

@@ -5308,16 +5308,27 @@ var $author$project$Models$Cors = F3(
 	function (enable, removeDefaultResponseTemplates, allowHeaders) {
 		return {allowHeaders: allowHeaders, enable: enable, removeDefaultResponseTemplates: removeDefaultResponseTemplates};
 	});
+var $elm$json$Json$Decode$oneOf = _Json_oneOf;
+var $elm$json$Json$Decode$maybe = function (decoder) {
+	return $elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder),
+				$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing)
+			]));
+};
 var $author$project$Models$corsDecoder = A4(
 	$elm$json$Json$Decode$map3,
 	$author$project$Models$Cors,
 	A2($elm$json$Json$Decode$field, 'enable', $elm$json$Json$Decode$bool),
-	A2($elm$json$Json$Decode$field, 'removeDefaultResponseTemplates', $elm$json$Json$Decode$bool),
+	$elm$json$Json$Decode$maybe(
+		A2($elm$json$Json$Decode$field, 'removeDefaultResponseTemplates', $elm$json$Json$Decode$bool)),
 	A2(
 		$elm$json$Json$Decode$field,
 		'allowHeaders',
 		$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
 var $elm$json$Json$Decode$map4 = _Json_map4;
+var $elm$json$Json$Decode$null = _Json_decodeNull;
 var $author$project$Models$QueryParam = F2(
 	function (name, type_) {
 		return {name: name, type_: type_};
@@ -5342,7 +5353,8 @@ var $author$project$Models$actionDecoder = A6(
 	A2($elm$json$Json$Decode$field, 'type', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'integration', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'proxyIntegration', $elm$json$Json$Decode$bool),
-	A2($elm$json$Json$Decode$field, 'vpcLink', $elm$json$Json$Decode$string),
+	$elm$json$Json$Decode$maybe(
+		A2($elm$json$Json$Decode$field, 'vpcLink', $elm$json$Json$Decode$string)),
 	A2($elm$json$Json$Decode$field, 'authorization', $elm$json$Json$Decode$string));
 var $author$project$Models$viewModelActionDecoder = A3(
 	$elm$json$Json$Decode$map2,
@@ -5357,7 +5369,12 @@ var $author$project$Models$methodDecoder = A5(
 	A2(
 		$elm$json$Json$Decode$field,
 		'queryParams',
-		$elm$json$Json$Decode$list($author$project$Models$queryParamsDecoder)),
+		$elm$json$Json$Decode$oneOf(
+			_List_fromArray(
+				[
+					$elm$json$Json$Decode$list($author$project$Models$queryParamsDecoder),
+					$elm$json$Json$Decode$null(_List_Nil)
+				]))),
 	A2(
 		$elm$json$Json$Decode$field,
 		'actions',
@@ -5793,7 +5810,16 @@ var $author$project$Main$viewAction = F2(
 											_List_Nil,
 											_List_fromArray(
 												[
-													$elm$html$Html$text(vmAction.action.vpcLink)
+													$elm$html$Html$text(
+													function () {
+														var _v1 = vmAction.action.vpcLink;
+														if (_v1.$ === 'Just') {
+															var vpcLink = _v1.a;
+															return vpcLink;
+														} else {
+															return 'Propriedade não informada.';
+														}
+													}())
 												])),
 											A2(
 											$elm$html$Html$td,
@@ -5872,11 +5898,22 @@ var $author$project$Main$viewCors = function (cors) {
 									])),
 								A2(
 								$elm$html$Html$td,
-								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('removeDefaultResponseTemplates')
+									]),
 								_List_fromArray(
 									[
 										$elm$html$Html$text(
-										cors.removeDefaultResponseTemplates ? 'Yes' : 'No')
+										function () {
+											var _v0 = cors.removeDefaultResponseTemplates;
+											if (_v0.$ === 'Just') {
+												var removeDefaultResponseTemplates = _v0.a;
+												return removeDefaultResponseTemplates ? 'Yes' : 'No';
+											} else {
+												return 'Propriedade não informada.';
+											}
+										}())
 									])),
 								A2(
 								$elm$html$Html$td,

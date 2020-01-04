@@ -1,9 +1,14 @@
-module TestData exposing (actionData, blueprintData, corsData, fileExample01Data, flaskData, methodData, queryParamsData, resourceData)
+module TestData exposing (actionData, actionDataWithNulls, blueprintData, corsData, corsDataWithNulls, fileExample01Data, flaskData, methodData, methodDataWithQueryParamsNull, queryParamsData, resourceData)
 
 
 actionData : String
 actionData =
     """{"type": "GET", "integration": "integration", "proxyIntegration": true, "vpcLink": "vpcLink", "authorization": "authorization"}"""
+
+
+actionDataWithNulls : String
+actionDataWithNulls =
+    """{"type": "GET", "integration": null, "proxyIntegration": null, "vpcLink": null, "authorization": null}"""
 
 
 queryParamsData : String
@@ -16,9 +21,19 @@ corsData =
     """{"enable": true, "removeDefaultResponseTemplates": true, "allowHeaders": ["header1"]} """
 
 
+corsDataWithNulls : String
+corsDataWithNulls =
+    """{"enable": null, "removeDefaultResponseTemplates": null, "allowHeaders": null} """
+
+
 methodData : String
 methodData =
     """{"path": "path", "cors": """ ++ corsData ++ """, "queryParams": [""" ++ queryParamsData ++ """], "actions": [""" ++ actionData ++ """] }"""
+
+
+methodDataWithQueryParamsNull : String
+methodDataWithQueryParamsNull =
+    """{"path": "path", "cors": """ ++ corsData ++ """, "queryParams": null, "actions": [""" ++ actionData ++ """] }"""
 
 
 flaskData : String

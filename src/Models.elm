@@ -33,10 +33,10 @@ import Json.Decode as Decode
 
 type alias Action =
     { type_ : String
-    , integration : String
-    , proxyIntegration : Bool
-    , vpcLink : String
-    , authorization : String
+    , integration : Maybe String
+    , proxyIntegration : Maybe Bool
+    , vpcLink : Maybe String
+    , authorization : Maybe String
     }
 
 
@@ -44,10 +44,10 @@ actionDecoder : Decode.Decoder Action
 actionDecoder =
     Decode.map5 Action
         (Decode.field "type" Decode.string)
-        (Decode.field "integration" Decode.string)
-        (Decode.field "proxyIntegration" Decode.bool)
-        (Decode.field "vpcLink" Decode.string)
-        (Decode.field "authorization" Decode.string)
+        (Decode.maybe (Decode.field "integration" Decode.string))
+        (Decode.maybe (Decode.field "proxyIntegration" Decode.bool))
+        (Decode.maybe (Decode.field "vpcLink" Decode.string))
+        (Decode.maybe (Decode.field "authorization" Decode.string))
 
 
 type alias ViewModelAction =
@@ -77,18 +77,18 @@ queryParamsDecoder =
 
 
 type alias Cors =
-    { enable : Bool
-    , removeDefaultResponseTemplates : Bool
-    , allowHeaders : List String
+    { enable : Maybe Bool
+    , removeDefaultResponseTemplates : Maybe Bool
+    , allowHeaders : Maybe (List String)
     }
 
 
 corsDecoder : Decode.Decoder Cors
 corsDecoder =
     Decode.map3 Cors
-        (Decode.field "enable" Decode.bool)
-        (Decode.field "removeDefaultResponseTemplates" Decode.bool)
-        (Decode.field "allowHeaders" (Decode.list Decode.string))
+        (Decode.maybe (Decode.field "enable" Decode.bool))
+        (Decode.maybe (Decode.field "removeDefaultResponseTemplates" Decode.bool))
+        (Decode.maybe (Decode.field "allowHeaders" (Decode.list Decode.string)))
 
 
 type alias Method =
@@ -104,7 +104,7 @@ methodDecoder =
     Decode.map4 Method
         (Decode.field "path" Decode.string)
         (Decode.field "cors" corsDecoder)
-        (Decode.field "queryParams" (Decode.list queryParamsDecoder))
+        (Decode.field "queryParams" (Decode.oneOf [ Decode.list queryParamsDecoder, Decode.null [] ]))
         (Decode.field "actions" (Decode.list viewModelActionDecoder |> Decode.andThen (\modelActionList -> List.map (\modelAction -> ( modelAction.action.type_, modelAction )) modelActionList |> Dict.fromList |> Decode.succeed)))
 
 

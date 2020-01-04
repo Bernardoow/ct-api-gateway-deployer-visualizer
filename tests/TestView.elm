@@ -30,14 +30,14 @@ start =
     startCustom fileExample01Data
 
 
-customViewModelAction : String -> ViewModelAction
-customViewModelAction method =
+customViewModelAction : { method : String, vpcLink : Maybe String, authorization : Maybe String, integration : Maybe String, proxyIntegration : Maybe Bool } -> ViewModelAction
+customViewModelAction { method, vpcLink, authorization, integration, proxyIntegration } =
     { action =
         { type_ = method
-        , integration = "integration1"
-        , proxyIntegration = True
-        , vpcLink = "vpcLink1"
-        , authorization = "authorization1"
+        , integration = integration
+        , proxyIntegration = proxyIntegration
+        , vpcLink = vpcLink
+        , authorization = authorization
         }
     , isOpened = False
     }
@@ -45,7 +45,7 @@ customViewModelAction method =
 
 defaultViewModelAction : ViewModelAction
 defaultViewModelAction =
-    customViewModelAction "GET"
+    customViewModelAction { method = "GET", vpcLink = Just "vpcLink", authorization = Just "authorization1", integration = Just "integration1", proxyIntegration = Just True }
 
 
 defaultParamViewAction : { resourcekey : String, methodKey : String }
@@ -56,7 +56,7 @@ defaultParamViewAction =
 defaultMethod : Method
 defaultMethod =
     { path = "path"
-    , cors = { enable = True, removeDefaultResponseTemplates = True, allowHeaders = [ "header1" ] }
+    , cors = { enable = Just True, removeDefaultResponseTemplates = Just True, allowHeaders = Just [ "header1" ] }
     , queryParams = [ { name = "name", type_ = "type" } ]
     , actions =
         Dict.fromList
@@ -86,12 +86,17 @@ defaultResourceFlask =
     }
 
 
+customCors : { enable : Maybe Bool, removeDefaultResponseTemplates : Maybe Bool, allowHeaders : Maybe (List String) } -> Cors
+customCors { enable, removeDefaultResponseTemplates, allowHeaders } =
+    { enable = enable
+    , removeDefaultResponseTemplates = removeDefaultResponseTemplates
+    , allowHeaders = allowHeaders
+    }
+
+
 defaultCors : Cors
 defaultCors =
-    { enable = True
-    , removeDefaultResponseTemplates = True
-    , allowHeaders = [ "A", "B", "C" ]
-    }
+    customCors { enable = Just True, removeDefaultResponseTemplates = Just True, allowHeaders = Just [ "A", "B", "C" ] }
 
 
 viewsTests : Test
@@ -191,22 +196,22 @@ viewsTests =
                         |> Query.has [ Selector.tag "span", Selector.classes [ "badge", "badge-secondary", "float-right" ], Selector.containing [ Selector.text "Hide Details" ] ]
             , test "it should has a button contain a classes badge badge-info when it action is get" <|
                 \_ ->
-                    Main.viewAction defaultParamViewAction (customViewModelAction "GET")
+                    Main.viewAction defaultParamViewAction (customViewModelAction { method = "GET", vpcLink = Just "vpcLink", authorization = Just "authorization", integration = Just "integration1", proxyIntegration = Just True })
                         |> Query.fromHtml
                         |> Query.has [ Selector.tag "button", Selector.containing [ Selector.tag "span", Selector.classes [ "badge", "badge-info" ], Selector.text "GET" ] ]
             , test "it should has a button contain a classes badge badge-success when it action is post" <|
                 \_ ->
-                    Main.viewAction defaultParamViewAction (customViewModelAction "POST")
+                    Main.viewAction defaultParamViewAction (customViewModelAction { method = "POST", vpcLink = Just "vpcLink", authorization = Just "authorization", integration = Just "integration1", proxyIntegration = Just True })
                         |> Query.fromHtml
                         |> Query.has [ Selector.tag "button", Selector.containing [ Selector.tag "span", Selector.classes [ "badge", "badge-success" ], Selector.text "POST" ] ]
             , test "it should has a button contain a classes badge badge-danger when it action is delete" <|
                 \_ ->
-                    Main.viewAction defaultParamViewAction (customViewModelAction "DELETE")
+                    Main.viewAction defaultParamViewAction (customViewModelAction { method = "DELETE", vpcLink = Just "vpcLink", authorization = Just "authorization", integration = Just "integration1", proxyIntegration = Just True })
                         |> Query.fromHtml
                         |> Query.has [ Selector.tag "button", Selector.containing [ Selector.tag "span", Selector.classes [ "badge", "badge-danger" ], Selector.text "DELETE" ] ]
             , test "it should has a button contain a classes badge badge-danger when it action is put" <|
                 \_ ->
-                    Main.viewAction defaultParamViewAction (customViewModelAction "PUT")
+                    Main.viewAction defaultParamViewAction (customViewModelAction { method = "PUT", vpcLink = Just "vpcLink", authorization = Just "authorization", integration = Just "integration1", proxyIntegration = Just True })
                         |> Query.fromHtml
                         |> Query.has [ Selector.tag "button", Selector.containing [ Selector.tag "span", Selector.classes [ "badge", "badge-warning" ], Selector.text "PUT" ] ]
             , test "it should hasNot a table with action information" <|
@@ -216,67 +221,125 @@ viewsTests =
                         |> Query.hasNot [ Selector.tag "table" ]
             , test "it should has a table with action information" <|
                 \_ ->
-                    Main.viewAction defaultParamViewAction defaultViewModelAction
+                    Main.viewAction defaultParamViewAction { defaultViewModelAction | isOpened = True }
                         |> Query.fromHtml
-                        |> Query.findAll [ Selector.tag "table" ]
-                        |> Query.each
-                            (Expect.all
-                                [ Query.has
-                                    [ Selector.all
-                                        [ Selector.tag "table"
-                                        , Selector.classes [ "table", "table-bordered", "table-sm", "table-action-info" ]
-                                        ]
-                                    ]
-                                , Query.has
-                                    [ Selector.all
-                                        [ Selector.tag "tr"
-                                        , Selector.containing [ Selector.tag "td", Selector.text defaultViewModelAction.action.integration ]
-                                        ]
-                                    , Selector.all
-                                        [ Selector.tag "tr"
-                                        , Selector.containing [ Selector.tag "th", Selector.text "integration" ]
-                                        ]
-                                    ]
-                                , Query.has
-                                    [ Selector.all
-                                        [ Selector.tag "tr"
-                                        , Selector.containing
-                                            [ Selector.tag "td"
-                                            , Selector.text <|
-                                                if defaultViewModelAction.action.proxyIntegration then
-                                                    "True"
-
-                                                else
-                                                    "False"
-                                            ]
-                                        ]
-                                    , Selector.all
-                                        [ Selector.tag "tr"
-                                        , Selector.containing [ Selector.tag "th", Selector.text "proxyIntegration" ]
-                                        ]
-                                    ]
-                                , Query.has
-                                    [ Selector.all
-                                        [ Selector.tag "tr"
-                                        , Selector.containing [ Selector.tag "td", Selector.text defaultViewModelAction.action.vpcLink ]
-                                        ]
-                                    , Selector.all
-                                        [ Selector.tag "tr"
-                                        , Selector.containing [ Selector.tag "th", Selector.text "vpcLink" ]
-                                        ]
-                                    ]
-                                , Query.has
-                                    [ Selector.all
-                                        [ Selector.tag "tr"
-                                        , Selector.containing [ Selector.tag "td", Selector.text defaultViewModelAction.action.authorization ]
-                                        ]
-                                    , Selector.all
-                                        [ Selector.tag "tr"
-                                        , Selector.containing [ Selector.tag "th", Selector.text "authorization" ]
-                                        ]
+                        |> Query.has
+                            [ Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-bordered", "table-sm", "table-action-info" ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing [ Selector.tag "td", Selector.text "integration1" ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing [ Selector.tag "th", Selector.text "integration" ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing
+                                    [ Selector.tag "td"
+                                    , Selector.text "True"
                                     ]
                                 ]
-                            )
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing [ Selector.tag "th", Selector.text "proxyIntegration" ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing
+                                    [ Selector.tag "td"
+                                    , Selector.text <|
+                                        case defaultViewModelAction.action.vpcLink of
+                                            Nothing ->
+                                                "Propriedade não informada."
+
+                                            Just vpcLink ->
+                                                vpcLink
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing [ Selector.tag "th", Selector.text "vpcLink" ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing
+                                    [ Selector.tag "td"
+                                    , Selector.text <|
+                                        case defaultViewModelAction.action.authorization of
+                                            Nothing ->
+                                                "Propriedade não informada."
+
+                                            Just authorization ->
+                                                authorization
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing [ Selector.tag "th", Selector.text "authorization" ]
+                                ]
+                            ]
+            , test "it show up the msg Propriedade não informada. to properties not filled." <|
+                \_ ->
+                    let
+                        cvma =
+                            customViewModelAction { method = "GET", authorization = Nothing, vpcLink = Nothing, integration = Nothing, proxyIntegration = Nothing }
+                    in
+                    Main.viewAction defaultParamViewAction { cvma | isOpened = True }
+                        |> Query.fromHtml
+                        |> Query.has
+                            [ Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-bordered", "table-sm", "table-action-info" ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing [ Selector.class "authorization", Selector.tag "td", Selector.text "Propriedade não informada." ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing [ Selector.tag "th", Selector.text "integration" ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing
+                                    [ Selector.tag "td"
+                                    , Selector.class "proxyIntegration"
+                                    , Selector.text "Propriedade não informada."
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing [ Selector.tag "th", Selector.text "proxyIntegration" ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing
+                                    [ Selector.tag "td"
+                                    , Selector.class "vpcLink"
+                                    , Selector.text "Propriedade não informada."
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing [ Selector.tag "th", Selector.text "vpcLink" ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing
+                                    [ Selector.tag "td"
+                                    , Selector.class "authorization"
+                                    , Selector.text "Propriedade não informada."
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "tr"
+                                , Selector.containing [ Selector.tag "th", Selector.text "authorization" ]
+                                ]
+                            ]
             , test "the table of information should has this classes " <|
                 \_ ->
                     Main.viewAction defaultParamViewAction { defaultViewModelAction | isOpened = True }
@@ -427,7 +490,34 @@ viewsTests =
                             ]
             ]
         , describe "Test viewCors"
-            [ test "it should has table with ths for each attribute." <|
+            [ test "it should show up the phrase propriedade não informada para nothing variables" <|
+                \_ ->
+                    Main.viewCors (customCors { enable = Nothing, removeDefaultResponseTemplates = Nothing, allowHeaders = Nothing })
+                        |> Query.fromHtml
+                        |> Query.has
+                            [ Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered", "mt-2" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "td", Selector.class "removeDefaultResponseTemplates", Selector.containing [ Selector.text "Propriedade não informada." ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered", "mt-2" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "td", Selector.class "allowHeaders", Selector.containing [ Selector.text "Propriedade não informada." ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered", "mt-2" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "td", Selector.class "enable", Selector.containing [ Selector.text "Propriedade não informada." ] ]
+                                    ]
+                                ]
+                            ]
+            , test "it should has table with ths for each attribute." <|
                 \_ ->
                     Main.viewCors defaultCors
                         |> Query.fromHtml
