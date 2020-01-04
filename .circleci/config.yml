@@ -10,6 +10,6 @@
        - run: ./node_modules/.bin/elm-test --compiler ./node_modules/.bin/elm
  workflows:
    version: 2
-   one_and_two:
+   build-deploy:
      jobs:
        - test
