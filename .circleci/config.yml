@@ -1,0 +1,15 @@
+ version: 2
+ jobs:
+   test:
+     docker:
+       - image: circleci/node:12.9.1
+     steps:
+       - checkout
+       - run: npm ci
+       - run: ls
+       - run: ./node_modules/.bin/elm-test --compiler ./node_modules/.bin/elm
+ workflows:
+   version: 2
+   one_and_two:
+     jobs:
+       - test
