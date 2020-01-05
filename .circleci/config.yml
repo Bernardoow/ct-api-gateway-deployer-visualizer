@@ -1,14 +1,52 @@
- version: 2
- jobs:
-   test:
-     docker:
-       - image: circleci/node:12.9.1
-     steps:
-       - checkout
-       - run: npm ci
-       - run: ./node_modules/.bin/elm-test --compiler ./node_modules/.bin/elm
+version: 2
+jobs:
+  test:
+    docker:
+      - image: circleci/node:12.9.1
+    steps:
+      - checkout
+      - run: npm ci
+      - run: ./node_modules/.bin/elm-test --compiler ./node_modules/.bin/elm
+  build-gh-pages:
+    docker:
+      - image: circleci/node:12.9.1
+    steps:
+      - checkout
+      - run: npm ci
+      - run: build.sh
+      - run: deploy.sh
+      - persist_to_workspace:
+        root: gh-pages
+  gh-pages-deploy:
+    docker:
+      - image: node:8.10.0
+    steps:
+      - checkout
+      - attach_workspace:
+          at: gh-pages
+      - run:
+          name: Install and configure dependencies
+          command: |
+            npm install -g --silent gh-pages@2.0.1
+            git config user.email "bgomesdeabreu@gmail.com"
+            git config user.name "Bernardo Gomes"
+      - add_ssh_keys:
+          fingerprints:
+            - "66:93:f2:81:f5:cc:8e:ee:91:61:66:81:2a:d5:c6:df"            
+      - run:
+          name: Deploy docs to gh-pages branch
+          command: gh-pages --message "[skip ci] Updates" --dist gh-pages
+
  workflows:
    version: 2
    build-deploy:
      jobs:
-       - test
+        - test
+        - build-gh-pages
+        - gh-pages-deploy:
+            requires:
+              - test
+              - build-gh-pages
+            filters:
+              branches:
+                only: master
