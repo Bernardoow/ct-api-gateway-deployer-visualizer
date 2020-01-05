@@ -1,4 +1,19 @@
-module TestData exposing (actionData, actionDataWithNulls, blueprintData, blueprintDataWithNulls, corsData, corsDataWithNulls, fileExample01Data, flaskData, methodData, methodDataWithQueryParamsNull, queryParamsData, resourceData)
+module TestData exposing
+    ( actionData
+    , actionDataWithNulls
+    , blueprintData
+    , blueprintDataWithNulls
+    , corsData
+    , corsDataWithNulls
+    , fileExample01Data
+    , methodData
+    , methodDataWithQueryParamsNull
+    , queryParamsData
+    , resourceData
+    , resourceDataWithNulls
+    , resourceFlaskData
+    , resourceFlaskDataWithNulls
+    )
 
 
 actionData : String
@@ -33,17 +48,27 @@ methodData =
 
 methodDataWithQueryParamsNull : String
 methodDataWithQueryParamsNull =
-    """{"path": "path", "cors": """ ++ corsData ++ """, "queryParams": null, "actions": [""" ++ actionData ++ """] }"""
+    """{"path": "path",  "queryParams": null}"""
 
 
-flaskData : String
-flaskData =
+resourceFlaskData : String
+resourceFlaskData =
     """{"resourceModule": "resourceModule", "resourceClass": "resourceClass", "strictSlashes": false}"""
+
+
+resourceFlaskDataWithNulls : String
+resourceFlaskDataWithNulls =
+    """{"resourceModule": null, "resourceClass": null}"""
 
 
 resourceData : String
 resourceData =
-    """{"name": "name", "flask": """ ++ flaskData ++ """, "methods": [""" ++ methodData ++ """]}"""
+    """{"name": "name", "flask": """ ++ resourceFlaskData ++ """, "methods": [""" ++ methodData ++ """]}"""
+
+
+resourceDataWithNulls : String
+resourceDataWithNulls =
+    """{"name": "name"}"""
 
 
 blueprintData : String

@@ -12,7 +12,7 @@ import ProgramTest exposing (ProgramTest)
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
-import TestData exposing (actionData, corsData, fileExample01Data, flaskData, methodData, queryParamsData, resourceData)
+import TestData exposing (actionData, corsData, fileExample01Data, methodData, queryParamsData, resourceData)
 
 
 startCustom : String -> ProgramTest Main.Model Main.Msg (Cmd Main.Msg)
@@ -56,12 +56,13 @@ defaultParamViewAction =
 defaultMethod : Method
 defaultMethod =
     { path = "path"
-    , cors = { enable = Just True, removeDefaultResponseTemplates = Just True, allowHeaders = Just [ "header1" ] }
+    , cors = Just { enable = Just True, removeDefaultResponseTemplates = Just True, allowHeaders = Just [ "header1" ] }
     , queryParams = [ { name = "name", type_ = "type" } ]
     , actions =
-        Dict.fromList
-            [ ( "GET", defaultViewModelAction )
-            ]
+        Just <|
+            Dict.fromList
+                [ ( "GET", defaultViewModelAction )
+                ]
     }
 
 
@@ -80,9 +81,9 @@ defaultError =
 
 defaultResourceFlask : ResourceFlask
 defaultResourceFlask =
-    { resourceModule = "resourceModule"
-    , resourceClass = "resourceClass"
-    , strictSlashes = True
+    { resourceModule = Just "resourceModule"
+    , resourceClass = Just "resourceClass"
+    , strictSlashes = Just True
     }
 
 
@@ -115,19 +116,24 @@ viewsTests =
         , describe "Test viewResource"
             [ test "it should has a title h3" <|
                 \_ ->
-                    Main.viewResource { name = "Resource 1", resourceFlask = defaultResourceFlask, methods = Dict.empty }
+                    Main.viewResource { name = "Resource 1", resourceFlask = Just defaultResourceFlask, methods = Just Dict.empty }
                         |> Query.fromHtml
                         |> Query.has [ Selector.tag "h3", Selector.containing [ Selector.text "Resource 1" ] ]
             , test "it should has a div with class list-group" <|
                 \_ ->
-                    Main.viewResource { name = "Resource 1", resourceFlask = defaultResourceFlask, methods = Dict.empty }
+                    Main.viewResource { name = "Resource 1", resourceFlask = Just defaultResourceFlask, methods = Just Dict.empty }
                         |> Query.fromHtml
                         |> Query.has [ Selector.tag "div", Selector.classes [ "list-group", "col-12" ] ]
             , test "it should has a table for resourceFlask" <|
                 \_ ->
-                    Main.viewResource { name = "Resource 1", resourceFlask = defaultResourceFlask, methods = Dict.empty }
+                    Main.viewResource { name = "Resource 1", resourceFlask = Just defaultResourceFlask, methods = Just Dict.empty }
                         |> Query.fromHtml
                         |> Query.has [ Selector.tag "table", Selector.classes [ "table", "table-sm", "table-bordered" ] ]
+            , test "it should has information about nothing." <|
+                \_ ->
+                    Main.viewResource { name = "Resource 1", resourceFlask = Just defaultResourceFlask, methods = Nothing }
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.all [ Selector.tag "p", Selector.classes [ "alert", "alert-warning" ], Selector.containing [ Selector.text "A propriedade methods não informada." ] ] ]
             ]
         , describe "Test viewMethod"
             [ test "it should has a margin on actions methods" <|
@@ -163,6 +169,22 @@ viewsTests =
                             [ Selector.tag "div"
                             , Selector.class "list-group"
                             , Selector.containing [ Selector.tag "button", Selector.classes [ "list-group-item", "list-group-item-action" ] ]
+                            ]
+            , test "it should show up the information about nothing properties" <|
+                \_ ->
+                    Main.viewMethod "" { method = { defaultMethod | cors = Nothing, actions = Nothing }, isOpened = True }
+                        |> Query.fromHtml
+                        |> Query.has
+                            [ Selector.all
+                                [ Selector.tag "p"
+                                , Selector.classes [ "alert", "alert-warning" ]
+                                , Selector.containing [ Selector.text "A propriedade cors não informada." ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "p"
+                                , Selector.classes [ "alert", "alert-warning" ]
+                                , Selector.containing [ Selector.text "A propriedade actions não informada." ]
+                                ]
                             ]
             , test "it should show up the actions " <|
                 \_ ->
@@ -451,9 +473,9 @@ viewsTests =
                             ]
             ]
         , describe "Test viewResourceFlask"
-            [ test "it should has table with ths for each attribute." <|
+            [ test "it should has table with ths with title and tds with information for each attribute." <|
                 \_ ->
-                    Main.viewResourceFlask defaultResourceFlask
+                    Main.viewResourceFlask (Just defaultResourceFlask)
                         |> Query.fromHtml
                         |> Query.has
                             [ Selector.all
@@ -496,6 +518,68 @@ viewsTests =
                                 , Selector.classes [ "table", "table-sm", "table-bordered" ]
                                 , Selector.containing
                                     [ Selector.all [ Selector.tag "td", Selector.containing [ Selector.text "Yes" ] ]
+                                    ]
+                                ]
+                            ]
+            , test "it should has table with th with title and td with information about nothing information for each attribute." <|
+                \_ ->
+                    Main.viewResourceFlask
+                        (Just { defaultResourceFlask | resourceModule = Nothing, resourceClass = Nothing, strictSlashes = Nothing })
+                        |> Query.fromHtml
+                        |> Query.has
+                            [ Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "th", Selector.containing [ Selector.text "Resource Module" ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "td", Selector.classes [ "resourceModule" ], Selector.containing [ Selector.text "Propriedade não informada." ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "th", Selector.containing [ Selector.text "Resource Class" ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "td", Selector.classes [ "resourceClass" ], Selector.containing [ Selector.text "Propriedade não informada." ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "th", Selector.containing [ Selector.text "Strict Slashes" ] ]
+                                    ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "table"
+                                , Selector.classes [ "table", "table-sm", "table-bordered" ]
+                                , Selector.containing
+                                    [ Selector.all [ Selector.tag "td", Selector.classes [ "strictSlashes" ], Selector.containing [ Selector.text "Propriedade não informada." ] ]
+                                    ]
+                                ]
+                            ]
+            , test "it should has a p with information about resource flask is nothing." <|
+                \_ ->
+                    Main.viewResourceFlask Nothing
+                        |> Query.fromHtml
+                        |> Query.has
+                            [ Selector.all
+                                [ Selector.tag "p"
+                                , Selector.classes [ "alert", "alert-warning" ]
+                                , Selector.containing
+                                    [ Selector.text "A propriedade flask não foi informada."
                                     ]
                                 ]
                             ]
