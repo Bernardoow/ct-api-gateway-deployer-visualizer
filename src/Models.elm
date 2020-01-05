@@ -33,10 +33,10 @@ import Json.Decode as Decode
 
 type alias Action =
     { type_ : String
-    , integration : String
-    , proxyIntegration : Bool
-    , vpcLink : String
-    , authorization : String
+    , integration : Maybe String
+    , proxyIntegration : Maybe Bool
+    , vpcLink : Maybe String
+    , authorization : Maybe String
     }
 
 
@@ -44,10 +44,10 @@ actionDecoder : Decode.Decoder Action
 actionDecoder =
     Decode.map5 Action
         (Decode.field "type" Decode.string)
-        (Decode.field "integration" Decode.string)
-        (Decode.field "proxyIntegration" Decode.bool)
-        (Decode.field "vpcLink" Decode.string)
-        (Decode.field "authorization" Decode.string)
+        (Decode.maybe (Decode.field "integration" Decode.string))
+        (Decode.maybe (Decode.field "proxyIntegration" Decode.bool))
+        (Decode.maybe (Decode.field "vpcLink" Decode.string))
+        (Decode.maybe (Decode.field "authorization" Decode.string))
 
 
 type alias ViewModelAction =
@@ -77,25 +77,25 @@ queryParamsDecoder =
 
 
 type alias Cors =
-    { enable : Bool
-    , removeDefaultResponseTemplates : Bool
-    , allowHeaders : List String
+    { enable : Maybe Bool
+    , removeDefaultResponseTemplates : Maybe Bool
+    , allowHeaders : Maybe (List String)
     }
 
 
 corsDecoder : Decode.Decoder Cors
 corsDecoder =
     Decode.map3 Cors
-        (Decode.field "enable" Decode.bool)
-        (Decode.field "removeDefaultResponseTemplates" Decode.bool)
-        (Decode.field "allowHeaders" (Decode.list Decode.string))
+        (Decode.maybe (Decode.field "enable" Decode.bool))
+        (Decode.maybe (Decode.field "removeDefaultResponseTemplates" Decode.bool))
+        (Decode.maybe (Decode.field "allowHeaders" (Decode.list Decode.string)))
 
 
 type alias Method =
     { path : String
-    , cors : Cors
+    , cors : Maybe Cors
     , queryParams : List QueryParam
-    , actions : Dict.Dict String ViewModelAction
+    , actions : Maybe (Dict.Dict String ViewModelAction)
     }
 
 
@@ -103,9 +103,9 @@ methodDecoder : Decode.Decoder Method
 methodDecoder =
     Decode.map4 Method
         (Decode.field "path" Decode.string)
-        (Decode.field "cors" corsDecoder)
-        (Decode.field "queryParams" (Decode.list queryParamsDecoder))
-        (Decode.field "actions" (Decode.list viewModelActionDecoder |> Decode.andThen (\modelActionList -> List.map (\modelAction -> ( modelAction.action.type_, modelAction )) modelActionList |> Dict.fromList |> Decode.succeed)))
+        (Decode.maybe (Decode.field "cors" corsDecoder))
+        (Decode.field "queryParams" (Decode.oneOf [ Decode.list queryParamsDecoder, Decode.null [] ]))
+        (Decode.maybe (Decode.field "actions" (Decode.list viewModelActionDecoder |> Decode.andThen (\modelActionList -> List.map (\modelAction -> ( modelAction.action.type_, modelAction )) modelActionList |> Dict.fromList |> Decode.succeed))))
 
 
 type alias ViewModelMethod =
@@ -122,24 +122,24 @@ viewViewModelMethod =
 
 
 type alias ResourceFlask =
-    { resourceModule : String
-    , resourceClass : String
-    , strictSlashes : Bool
+    { resourceModule : Maybe String
+    , resourceClass : Maybe String
+    , strictSlashes : Maybe Bool
     }
 
 
 resourceFlaskDecoder : Decode.Decoder ResourceFlask
 resourceFlaskDecoder =
     Decode.map3 ResourceFlask
-        (Decode.field "resourceModule" Decode.string)
-        (Decode.field "resourceClass" Decode.string)
-        (Decode.field "strictSlashes" Decode.bool)
+        (Decode.maybe (Decode.field "resourceModule" Decode.string))
+        (Decode.maybe (Decode.field "resourceClass" Decode.string))
+        (Decode.maybe (Decode.field "strictSlashes" Decode.bool))
 
 
 type alias Resource =
     { name : String
-    , resourceFlask : ResourceFlask
-    , methods : Dict.Dict String ViewModelMethod
+    , resourceFlask : Maybe ResourceFlask
+    , methods : Maybe (Dict.Dict String ViewModelMethod)
     }
 
 
@@ -147,27 +147,40 @@ resourceDecoder : Decode.Decoder Resource
 resourceDecoder =
     Decode.map3 Resource
         (Decode.field "name" Decode.string)
-        (Decode.field "flask" resourceFlaskDecoder)
-        (Decode.field "methods"
-            (Decode.list viewViewModelMethod
-                |> Decode.andThen (\methodsList -> List.map (\item -> ( item.method.path, item )) methodsList |> Dict.fromList |> Decode.succeed)
+        (Decode.maybe (Decode.field "flask" resourceFlaskDecoder))
+        (Decode.maybe
+            (Decode.field "methods"
+                (Decode.list viewViewModelMethod
+                    |> Decode.andThen (\methodsList -> List.map (\item -> ( item.method.path, item )) methodsList |> Dict.fromList |> Decode.succeed)
+                )
             )
         )
 
 
 type alias Blueprint =
-    { name : String
-    , url_prefix : String
-    , resources : Dict.Dict String Resource
+    { name : Maybe String
+    , url_prefix : Maybe String
+    , resources : Maybe (Dict.Dict String Resource)
     }
 
 
 blueprintDecoder : Decode.Decoder Blueprint
 blueprintDecoder =
     Decode.map3 Blueprint
-        (Decode.field "name" Decode.string)
-        (Decode.field "url_prefix" Decode.string)
-        (Decode.field "resources" (Decode.list resourceDecoder |> Decode.andThen (\resourceList -> List.map (\resource -> ( resource.name, resource )) resourceList |> Dict.fromList |> Decode.succeed)))
+        (Decode.maybe (Decode.field "name" Decode.string))
+        (Decode.maybe (Decode.field "url_prefix" Decode.string))
+        (Decode.maybe
+            (Decode.field "resources"
+                (Decode.list resourceDecoder
+                    |> Decode.andThen
+                        (\resourceList ->
+                            List.map (\resource -> ( resource.name, resource )) resourceList
+                                |> Dict.fromList
+                                |> Decode.succeed
+                        )
+                )
+            )
+        )
 
 
 apiRoutesFileConfigurationDecoder : Decode.Decoder Blueprint

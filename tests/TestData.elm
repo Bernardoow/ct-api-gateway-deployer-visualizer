@@ -1,9 +1,29 @@
-module TestData exposing (actionData, blueprintData, corsData, fileExample01Data, flaskData, methodData, queryParamsData, resourceData)
+module TestData exposing
+    ( actionData
+    , actionDataWithNulls
+    , blueprintData
+    , blueprintDataWithNulls
+    , corsData
+    , corsDataWithNulls
+    , fileExample01Data
+    , methodData
+    , methodDataWithQueryParamsNull
+    , queryParamsData
+    , resourceData
+    , resourceDataWithNulls
+    , resourceFlaskData
+    , resourceFlaskDataWithNulls
+    )
 
 
 actionData : String
 actionData =
     """{"type": "GET", "integration": "integration", "proxyIntegration": true, "vpcLink": "vpcLink", "authorization": "authorization"}"""
+
+
+actionDataWithNulls : String
+actionDataWithNulls =
+    """{"type": "GET", "integration": null, "proxyIntegration": null, "vpcLink": null, "authorization": null}"""
 
 
 queryParamsData : String
@@ -16,24 +36,49 @@ corsData =
     """{"enable": true, "removeDefaultResponseTemplates": true, "allowHeaders": ["header1"]} """
 
 
+corsDataWithNulls : String
+corsDataWithNulls =
+    """{"enable": null, "removeDefaultResponseTemplates": null, "allowHeaders": null} """
+
+
 methodData : String
 methodData =
     """{"path": "path", "cors": """ ++ corsData ++ """, "queryParams": [""" ++ queryParamsData ++ """], "actions": [""" ++ actionData ++ """] }"""
 
 
-flaskData : String
-flaskData =
+methodDataWithQueryParamsNull : String
+methodDataWithQueryParamsNull =
+    """{"path": "path",  "queryParams": null}"""
+
+
+resourceFlaskData : String
+resourceFlaskData =
     """{"resourceModule": "resourceModule", "resourceClass": "resourceClass", "strictSlashes": false}"""
+
+
+resourceFlaskDataWithNulls : String
+resourceFlaskDataWithNulls =
+    """{"resourceModule": null, "resourceClass": null}"""
 
 
 resourceData : String
 resourceData =
-    """{"name": "name", "flask": """ ++ flaskData ++ """, "methods": [""" ++ methodData ++ """]}"""
+    """{"name": "name", "flask": """ ++ resourceFlaskData ++ """, "methods": [""" ++ methodData ++ """]}"""
+
+
+resourceDataWithNulls : String
+resourceDataWithNulls =
+    """{"name": "name"}"""
 
 
 blueprintData : String
 blueprintData =
     """{"name": "name", "url_prefix": "url_prefix", "resources": [""" ++ resourceData ++ """]}"""
+
+
+blueprintDataWithNulls : String
+blueprintDataWithNulls =
+    """{"name": null, "url_prefix": null}"""
 
 
 fileExample01Data : String

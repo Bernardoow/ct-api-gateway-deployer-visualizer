@@ -14,10 +14,11 @@ import TestData exposing (fileExample01Data)
 ---- HELPERS ----
 
 
-dictUpdate : { key : String, itemUpdated : a, dict : Dict.Dict String a } -> Dict.Dict String a
-dictUpdate { key, itemUpdated, dict } =
+dictUpdate : { key : String, itemUpdated : a, maybeDict : Maybe (Dict.Dict String a) } -> Maybe (Dict.Dict String a)
+dictUpdate { key, itemUpdated, maybeDict } =
     --TODO TEST
-    Dict.insert key itemUpdated dict
+    Maybe.map (\d -> Dict.insert key itemUpdated d |> Just) maybeDict
+        |> Maybe.withDefault maybeDict
 
 
 mountPathUrlUsingQueryParams : List QueryParam -> String
@@ -44,8 +45,7 @@ init dataToLoad =
 
 
 type Msg
-    = NoOp
-    | OnClickMethod String String
+    = OnClickMethod { resourcekey : String, methodKey : String }
     | OnClickAction { resourcekey : String, methodKey : String, actionKey : String }
     | OnInputTextAreaApiRoutesFileConfiguration String
 
@@ -53,19 +53,19 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        OnClickMethod resourcekey methodKey ->
+        OnClickMethod { resourcekey, methodKey } ->
             case model.blueprint of
                 Ok blueprint ->
-                    case Dict.get resourcekey blueprint.resources of
+                    case Dict.get resourcekey (Maybe.withDefault Dict.empty blueprint.resources) of
                         Just resource ->
-                            case Dict.get methodKey resource.methods of
+                            case Dict.get methodKey (Maybe.withDefault Dict.empty resource.methods) of
                                 Just method ->
                                     let
                                         methodsUpdated =
                                             dictUpdate
                                                 { key = methodKey
                                                 , itemUpdated = { method | isOpened = method.isOpened |> not }
-                                                , dict = resource.methods
+                                                , maybeDict = resource.methods
                                                 }
 
                                         resourcesUpdated =
@@ -75,7 +75,7 @@ update msg model =
                                                     { resource
                                                         | methods = methodsUpdated
                                                     }
-                                                , dict = blueprint.resources
+                                                , maybeDict = blueprint.resources
                                                 }
                                     in
                                     ( { model
@@ -100,18 +100,18 @@ update msg model =
         OnClickAction { resourcekey, methodKey, actionKey } ->
             case model.blueprint of
                 Ok blueprint ->
-                    case Dict.get resourcekey blueprint.resources of
+                    case Dict.get resourcekey (Maybe.withDefault Dict.empty blueprint.resources) of
                         Just resource ->
-                            case Dict.get methodKey resource.methods of
+                            case Dict.get methodKey (Maybe.withDefault Dict.empty resource.methods) of
                                 Just vmMethod ->
-                                    case Dict.get actionKey vmMethod.method.actions of
+                                    case Dict.get actionKey (Maybe.withDefault Dict.empty vmMethod.method.actions) of
                                         Just vmAction ->
                                             let
                                                 actionsUpdated =
                                                     dictUpdate
                                                         { key = actionKey
                                                         , itemUpdated = { vmAction | isOpened = vmAction.isOpened |> not }
-                                                        , dict = vmMethod.method.actions
+                                                        , maybeDict = vmMethod.method.actions
                                                         }
 
                                                 method =
@@ -124,7 +124,7 @@ update msg model =
                                                     dictUpdate
                                                         { key = methodKey
                                                         , itemUpdated = { vmMethod | method = methodUpdated }
-                                                        , dict = resource.methods
+                                                        , maybeDict = resource.methods
                                                         }
 
                                                 resourcesUpdated =
@@ -134,7 +134,7 @@ update msg model =
                                                             { resource
                                                                 | methods = methodsUpdated
                                                             }
-                                                        , dict = blueprint.resources
+                                                        , maybeDict = blueprint.resources
                                                         }
                                             in
                                             ( { model
@@ -161,9 +161,6 @@ update msg model =
 
         OnInputTextAreaApiRoutesFileConfiguration configuration ->
             ( { blueprint = Decode.decodeString apiRoutesFileConfigurationDecoder configuration, apiRoutesFileConfigurationRaw = configuration }, Cmd.none )
-
-        _ ->
-            ( model, Cmd.none )
 
 
 
@@ -222,17 +219,26 @@ viewAction { resourcekey, methodKey } vmAction =
                     ]
                 , tbody []
                     [ tr []
-                        [ td [] [ text vmAction.action.integration ]
-                        , td []
+                        [ td [ class "integration" ] [ text <| Maybe.withDefault "Propriedade não informada." vmAction.action.integration ]
+                        , td [ class "proxyIntegration" ]
                             [ text <|
-                                if vmAction.action.proxyIntegration then
-                                    "True"
+                                Maybe.withDefault "Propriedade não informada." <|
+                                    Maybe.map
+                                        (\proxyIntegration ->
+                                            if proxyIntegration then
+                                                "True"
 
-                                else
-                                    "False"
+                                            else
+                                                "False"
+                                        )
+                                        vmAction.action.proxyIntegration
                             ]
-                        , td [] [ text vmAction.action.vpcLink ]
-                        , td [] [ text vmAction.action.authorization ]
+                        , td [ class "vpcLink" ]
+                            [ text <| Maybe.withDefault "Propriedade não informada." vmAction.action.vpcLink
+                            ]
+                        , td [ class "authorization" ]
+                            [ text <| Maybe.withDefault "Propriedade não informada." vmAction.action.authorization
+                            ]
                         ]
                     ]
                 ]
@@ -251,9 +257,19 @@ viewMethod resourceKey vmMethod =
 
             else
                 "fa-arrow-down"
+
+        justVmMethodActions : Dict.Dict String ViewModelAction -> Html Msg
+        justVmMethodActions actions =
+            Dict.values actions
+                |> List.map (viewAction { resourcekey = resourceKey, methodKey = vmMethod.method.path })
+                |> div [ class "list-group mt-3" ]
+
+        nothingVmMethodActions : Html Msg
+        nothingVmMethodActions =
+            p [ class "alert", class "alert-warning" ] [ text "A propriedade actions não informada." ]
     in
     div []
-        [ button [ onClick <| OnClickMethod resourceKey vmMethod.method.path, class "list-group-item list-group-item-action" ]
+        [ button [ onClick <| OnClickMethod { resourcekey = resourceKey, methodKey = vmMethod.method.path }, class "list-group-item list-group-item-action" ]
             [ text <| vmMethod.method.path ++ "/" ++ mountPathUrlUsingQueryParams vmMethod.method.queryParams
             , if vmMethod.isOpened then
                 i [ class "float-right fas", class iconClass ] []
@@ -262,14 +278,12 @@ viewMethod resourceKey vmMethod =
                 i [ class "float-right fas", class iconClass ] []
             ]
         , if vmMethod.isOpened then
-            viewCors vmMethod.method.cors
+            Maybe.withDefault (p [ class "alert", class "alert-warning" ] [ text "A propriedade cors não informada." ]) <| Maybe.map viewCors vmMethod.method.cors
 
           else
             text ""
         , if vmMethod.isOpened then
-            Dict.values vmMethod.method.actions
-                |> List.map (viewAction { resourcekey = resourceKey, methodKey = vmMethod.method.path })
-                |> div [ class "list-group mt-3" ]
+            Maybe.withDefault nothingVmMethodActions <| Maybe.map justVmMethodActions vmMethod.method.actions
 
           else
             text ""
@@ -279,14 +293,20 @@ viewMethod resourceKey vmMethod =
 viewResource : Resource -> Html Msg
 viewResource resource =
     let
-        methods =
-            Dict.values resource.methods
-                |> List.map (viewMethod resource.name)
+        justMethods : String -> Dict.Dict String ViewModelMethod -> Html Msg
+        justMethods resourceName methods =
+            Dict.values methods
+                |> List.map (viewMethod resourceName)
+                |> div [ class "list-group col-12" ]
+
+        nothingMethods : Html Msg
+        nothingMethods =
+            p [ class "alert", class "alert-warning" ] [ text "A propriedade methods não informada." ]
     in
     div [ class "row col-12" ]
         [ h3 [] [ text resource.name ]
         , viewResourceFlask resource.resourceFlask
-        , div [ class "list-group col-12" ] methods
+        , Maybe.withDefault nothingMethods <| Maybe.map (justMethods resource.name) resource.methods
         ]
 
 
@@ -302,14 +322,20 @@ viewTextArea apiRoutesFileConfigurationRaw =
 viewBlueprint : Blueprint -> Html Msg
 viewBlueprint blueprint =
     let
-        resources =
-            Dict.values blueprint.resources
-                |> List.map viewResource
+        resourcesHtml =
+            case blueprint.resources of
+                Just resources ->
+                    Dict.values resources
+                        |> List.map viewResource
+                        |> div [ class "list-group" ]
+
+                Nothing ->
+                    p [ class "alert alert-warning resources" ] [ text "Resources não informados." ]
     in
     div [ class "col" ]
-        [ h2 [] [ span [] [ text "Blueprint: " ], text blueprint.name ]
-        , p [] [ span [] [ text "Url Prefix: " ], text blueprint.url_prefix ]
-        , div [ class "list-group" ] resources
+        [ h2 [] [ span [] [ text "Blueprint: " ], text <| Maybe.withDefault "Propriedade não informada." blueprint.name ]
+        , p [] [ span [] [ text "Url Prefix: " ], text <| Maybe.withDefault "Propriedade não informada." blueprint.url_prefix ]
+        , resourcesHtml
         ]
 
 
@@ -326,34 +352,48 @@ viewJsonErrorReport error =
 viewVersion : Html Msg
 viewVersion =
     --TODO TEST
-    p [ class "text-center" ] [ text "Bernardo Gomes -  Version 0.1" ]
+    p [ class "text-center" ] [ text "Bernardo Gomes -  Version 0.2" ]
 
 
-viewResourceFlask : ResourceFlask -> Html Msg
-viewResourceFlask resourceFlask =
-    table [ class "table", class "table-sm", class "table-bordered" ]
-        [ thead []
-            [ tr []
-                [ th [] [ text "Resource Module" ]
-                , th [] [ text "Resource Class" ]
-                , th [] [ text "Strict Slashes" ]
-                ]
-            ]
-        , tbody []
-            [ tr []
-                [ td [] [ text resourceFlask.resourceModule ]
-                , td [] [ text resourceFlask.resourceClass ]
-                , td []
-                    [ text <|
-                        if resourceFlask.strictSlashes then
-                            "Yes"
+viewResourceFlask : Maybe ResourceFlask -> Html Msg
+viewResourceFlask maybeResourceFlask =
+    let
+        justResourceFlask : ResourceFlask -> Html Msg
+        justResourceFlask resourceFlask =
+            table [ class "table", class "table-sm", class "table-bordered" ]
+                [ thead []
+                    [ tr []
+                        [ th [] [ text "Resource Module" ]
+                        , th [] [ text "Resource Class" ]
+                        , th [] [ text "Strict Slashes" ]
+                        ]
+                    ]
+                , tbody []
+                    [ tr []
+                        [ td [ class "resourceModule" ] [ text <| Maybe.withDefault "Propriedade não informada." resourceFlask.resourceModule ]
+                        , td [ class "resourceClass" ] [ text <| Maybe.withDefault "Propriedade não informada." resourceFlask.resourceClass ]
+                        , td [ class "strictSlashes" ]
+                            [ text <|
+                                Maybe.withDefault "Propriedade não informada." <|
+                                    Maybe.map
+                                        (\strictSlashes ->
+                                            if strictSlashes then
+                                                "Yes"
 
-                        else
-                            "No"
+                                            else
+                                                "No"
+                                        )
+                                        resourceFlask.strictSlashes
+                            ]
+                        ]
                     ]
                 ]
-            ]
-        ]
+
+        nothingResourceFlask : Html Msg
+        nothingResourceFlask =
+            p [ class "alert", class "alert-warning" ] [ text "A propriedade flask não foi informada." ]
+    in
+    Maybe.withDefault nothingResourceFlask <| Maybe.map justResourceFlask maybeResourceFlask
 
 
 viewCors : Cors -> Html Msg
@@ -368,23 +408,37 @@ viewCors cors =
             ]
         , tbody []
             [ tr []
-                [ td []
+                [ td [ class "enable" ]
                     [ text <|
-                        if cors.enable then
-                            "Yes"
+                        Maybe.withDefault "Propriedade não informada." <|
+                            Maybe.map
+                                (\enable ->
+                                    if enable then
+                                        "Yes"
 
-                        else
-                            "No"
+                                    else
+                                        "No"
+                                )
+                                cors.enable
                     ]
-                , td []
+                , td [ class "removeDefaultResponseTemplates" ]
                     [ text <|
-                        if cors.removeDefaultResponseTemplates then
-                            "Yes"
+                        Maybe.withDefault "Propriedade não informada." <|
+                            Maybe.map
+                                (\removeDefaultResponseTemplates ->
+                                    if removeDefaultResponseTemplates then
+                                        "Yes"
 
-                        else
-                            "No"
+                                    else
+                                        "No"
+                                )
+                                cors.removeDefaultResponseTemplates
                     ]
-                , td [] [ text <| String.join ", " cors.allowHeaders ]
+                , td [ class "allowHeaders" ]
+                    [ text <|
+                        Maybe.withDefault "Propriedade não informada." <|
+                            Maybe.map (\allowHeaders -> String.join ", " allowHeaders) cors.allowHeaders
+                    ]
                 ]
             ]
         ]
