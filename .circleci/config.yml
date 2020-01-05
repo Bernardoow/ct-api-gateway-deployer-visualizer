@@ -42,7 +42,12 @@ workflows:
   build-deploy:
     jobs:
       - test
-      - build-gh-pages
+      - build-gh-pages:
+          requires:
+            - test
+          filters:
+            branches:
+              only: master
       - gh-pages-deploy:
           requires:
             - test
