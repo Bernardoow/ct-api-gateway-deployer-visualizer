@@ -13,17 +13,19 @@ jobs:
     steps:
       - checkout
       - run: npm ci
-      - run: build.sh
-      - run: deploy.sh
+      - run: sh build.sh
+      - run: sh deploy.sh
       - persist_to_workspace:
-        root: gh-pages
+          root: ./gh-pages
+          paths:
+            - output
   gh-pages-deploy:
     docker:
       - image: node:8.10.0
     steps:
       - checkout
       - attach_workspace:
-          at: gh-pages
+          at: ./gh-pages/output
       - run:
           name: Install and configure dependencies
           command: |
@@ -32,10 +34,10 @@ jobs:
             git config user.name "Bernardo Gomes"
       - add_ssh_keys:
           fingerprints:
-            - "66:93:f2:81:f5:cc:8e:ee:91:61:66:81:2a:d5:c6:df"            
+            - "66:93:f2:81:f5:cc:8e:ee:91:61:66:81:2a:d5:c6:df"
       - run:
           name: Deploy docs to gh-pages branch
-          command: gh-pages --message "[skip ci] Updates" --dist gh-pages
+          command: gh-pages --message "[skip ci] Updates" --dist gh-pages/output/* --branch "gh-pages" --dest .
 
 workflows:
   version: 2
@@ -50,7 +52,6 @@ workflows:
               only: master
       - gh-pages-deploy:
           requires:
-            - test
             - build-gh-pages
           filters:
             branches:
