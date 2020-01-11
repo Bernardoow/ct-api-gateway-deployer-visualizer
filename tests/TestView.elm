@@ -57,7 +57,7 @@ defaultMethod : Method
 defaultMethod =
     { path = "path"
     , cors = Just { enable = Just True, removeDefaultResponseTemplates = Just True, allowHeaders = Just [ "header1" ] }
-    , queryParams = [ { name = "name", type_ = "type" } ]
+    , queryParams = [ { name = Just "name", type_ = Just "type" } ]
     , actions =
         Just <|
             Dict.fromList
@@ -113,6 +113,14 @@ viewsTests =
                 start
                     |> ProgramTest.expectViewHas
                         [ Selector.tag "div", Selector.class "list-group" ]
+        , describe "Test The whole page"
+            [ test "it should has a div list" <|
+                \_ ->
+                    start
+                        |> ProgramTest.fillInTextarea ""
+                        |> ProgramTest.expectViewHas
+                            [ Selector.tag "p", Selector.classes [ "alert", "alert-info" ], Selector.containing [ Selector.text "Insira as rotas na área de texto a esquerda." ] ]
+            ]
         , describe "Test viewResource"
             [ test "it should has a title h3" <|
                 \_ ->
@@ -169,6 +177,20 @@ viewsTests =
                             [ Selector.tag "div"
                             , Selector.class "list-group"
                             , Selector.containing [ Selector.tag "button", Selector.classes [ "list-group-item", "list-group-item-action" ] ]
+                            ]
+            , test "it should show up the information query params missing information" <|
+                \_ ->
+                    Main.viewMethod "" { method = { defaultMethod | queryParams = [ { name = Nothing, type_ = Nothing } ] }, isOpened = True }
+                        |> Query.fromHtml
+                        |> Query.has
+                            [ Selector.all
+                                [ Selector.tag "button"
+                                , Selector.containing [ Selector.text "Parâmetro tipo não informado" ]
+                                ]
+                            , Selector.all
+                                [ Selector.tag "button"
+                                , Selector.containing [ Selector.text "Parâmetro nome não informado." ]
+                                ]
                             ]
             , test "it should show up the information about nothing properties" <|
                 \_ ->

@@ -6,3 +6,5 @@ node_modules/
 
 elm.js
 elm.min.js
+
+.coverage

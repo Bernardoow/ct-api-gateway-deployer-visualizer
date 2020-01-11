@@ -23,7 +23,7 @@ dictUpdate { key, itemUpdated, maybeDict } =
 
 mountPathUrlUsingQueryParams : List QueryParam -> String
 mountPathUrlUsingQueryParams queryParamsList =
-    List.map (\qp -> "<" ++ qp.type_ ++ ":" ++ qp.name ++ ">") queryParamsList
+    List.map (\qp -> "<" ++ Maybe.withDefault "Parâmetro tipo não informado." qp.type_ ++ ":" ++ Maybe.withDefault "Parâmetro nome não informado." qp.name ++ ">") queryParamsList
         |> String.join "/"
 
 
@@ -32,12 +32,12 @@ mountPathUrlUsingQueryParams queryParamsList =
 
 
 type alias Model =
-    { blueprint : Result Decode.Error Blueprint, apiRoutesFileConfigurationRaw : String }
+    { blueprint : Maybe (Result Decode.Error Blueprint), apiRoutesFileConfigurationRaw : String }
 
 
 init : String -> ( Model, Cmd Msg )
 init dataToLoad =
-    ( { blueprint = Decode.decodeString apiRoutesFileConfigurationDecoder dataToLoad, apiRoutesFileConfigurationRaw = dataToLoad }, Cmd.none )
+    ( { blueprint = Just <| Decode.decodeString apiRoutesFileConfigurationDecoder dataToLoad, apiRoutesFileConfigurationRaw = dataToLoad }, Cmd.none )
 
 
 
@@ -55,7 +55,7 @@ update msg model =
     case msg of
         OnClickMethod { resourcekey, methodKey } ->
             case model.blueprint of
-                Ok blueprint ->
+                Just (Ok blueprint) ->
                     case Dict.get resourcekey (Maybe.withDefault Dict.empty blueprint.resources) of
                         Just resource ->
                             case Dict.get methodKey (Maybe.withDefault Dict.empty resource.methods) of
@@ -84,6 +84,7 @@ update msg model =
                                                 { blueprint
                                                     | resources = resourcesUpdated
                                                 }
+                                                |> Just
                                       }
                                     , Cmd.none
                                     )
@@ -94,12 +95,15 @@ update msg model =
                         Nothing ->
                             ( model, Cmd.none )
 
-                Err _ ->
+                Just (Err _) ->
+                    ( model, Cmd.none )
+
+                Nothing ->
                     ( model, Cmd.none )
 
         OnClickAction { resourcekey, methodKey, actionKey } ->
             case model.blueprint of
-                Ok blueprint ->
+                Just (Ok blueprint) ->
                     case Dict.get resourcekey (Maybe.withDefault Dict.empty blueprint.resources) of
                         Just resource ->
                             case Dict.get methodKey (Maybe.withDefault Dict.empty resource.methods) of
@@ -143,6 +147,7 @@ update msg model =
                                                         { blueprint
                                                             | resources = resourcesUpdated
                                                         }
+                                                        |> Just
                                               }
                                             , Cmd.none
                                             )
@@ -156,11 +161,42 @@ update msg model =
                         Nothing ->
                             ( model, Cmd.none )
 
-                Err _ ->
+                Just (Err _) ->
+                    ( model, Cmd.none )
+
+                Nothing ->
                     ( model, Cmd.none )
 
         OnInputTextAreaApiRoutesFileConfiguration configuration ->
-            ( { blueprint = Decode.decodeString apiRoutesFileConfigurationDecoder configuration, apiRoutesFileConfigurationRaw = configuration }, Cmd.none )
+            if String.isEmpty configuration then
+                ( { blueprint = Nothing, apiRoutesFileConfigurationRaw = configuration }, Cmd.none )
+
+            else
+                let
+                    _ =
+                        Debug.log "" <| Result.mapError Decode.errorToString (Decode.decodeString apiRoutesFileConfigurationDecoder configuration)
+
+                    _ =
+                        case Decode.decodeString apiRoutesFileConfigurationDecoder configuration of
+                            Err error ->
+                                case error of
+                                    Decode.Failure errorMsg text ->
+                                        let
+                                            _ =
+                                                Debug.log "errorMsg" errorMsg
+
+                                            _ =
+                                                Debug.log "text" text
+                                        in
+                                        ""
+
+                                    _ ->
+                                        ""
+
+                            _ ->
+                                ""
+                in
+                ( { blueprint = Just <| Decode.decodeString apiRoutesFileConfigurationDecoder configuration, apiRoutesFileConfigurationRaw = configuration }, Cmd.none )
 
 
 
@@ -448,7 +484,7 @@ view : Model -> Html Msg
 view model =
     --"TODO TEST"
     case model.blueprint of
-        Ok blueprint ->
+        Just (Ok blueprint) ->
             div [ class "container-fluid" ]
                 [ div [ class "row" ]
                     [ div [ class "col" ] <| viewTextArea model.apiRoutesFileConfigurationRaw
@@ -457,12 +493,22 @@ view model =
                 , viewVersion
                 ]
 
-        Err error ->
+        Just (Err error) ->
             div [ class "container-fluid" ]
                 [ div [ class "row" ]
                     [ div [ class "col" ] <| viewTextArea model.apiRoutesFileConfigurationRaw
                     , div [ class "col" ]
                         [ viewJsonErrorReport error ]
+                    ]
+                , viewVersion
+                ]
+
+        Nothing ->
+            div [ class "container-fluid" ]
+                [ div [ class "row" ]
+                    [ div [ class "col" ] <| viewTextArea model.apiRoutesFileConfigurationRaw
+                    , div [ class "col" ]
+                        [ p [ class "alert", class "alert-info" ] [ text "Insira as rotas na área de texto a esquerda." ] ]
                     ]
                 , viewVersion
                 ]

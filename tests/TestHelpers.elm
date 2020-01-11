@@ -14,9 +14,15 @@ testsHelpers =
                     Main.mountPathUrlUsingQueryParams [] |> Expect.equal ""
             , test "it should be <int:age>" <|
                 \_ ->
-                    Main.mountPathUrlUsingQueryParams [ { name = "age", type_ = "int" } ] |> Expect.equal "<int:age>"
+                    Main.mountPathUrlUsingQueryParams [ { name = Just "age", type_ = Just "int" } ] |> Expect.equal "<int:age>"
             , test "it should be <int:age>/<string:name>" <|
                 \_ ->
-                    Main.mountPathUrlUsingQueryParams [ { name = "age", type_ = "int" }, { name = "name", type_ = "string" } ] |> Expect.equal "<int:age>/<string:name>"
+                    Main.mountPathUrlUsingQueryParams [ { name = Just "age", type_ = Just "int" }, { name = Just "name", type_ = Just "string" } ] |> Expect.equal "<int:age>/<string:name>"
+            , test "test queryparams without type_ it should be <Parâmetro tipo não informado.:age>" <|
+                \_ ->
+                    Main.mountPathUrlUsingQueryParams [ { name = Just "age", type_ = Nothing } ] |> Expect.equal "<Parâmetro tipo não informado.:age>"
+            , test "test queryparams without nome it should be <int:Parâmetro nome não informado.>" <|
+                \_ ->
+                    Main.mountPathUrlUsingQueryParams [ { name = Nothing, type_ = Just "int" } ] |> Expect.equal "<int:Parâmetro nome não informado.>"
             ]
         ]

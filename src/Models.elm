@@ -64,16 +64,16 @@ viewModelActionDecoder =
 
 
 type alias QueryParam =
-    { name : String
-    , type_ : String
+    { name : Maybe String
+    , type_ : Maybe String
     }
 
 
 queryParamsDecoder : Decode.Decoder QueryParam
 queryParamsDecoder =
     Decode.map2 QueryParam
-        (Decode.field "name" Decode.string)
-        (Decode.field "type" Decode.string)
+        (Decode.maybe (Decode.field "name" Decode.string))
+        (Decode.maybe (Decode.field "type" Decode.string))
 
 
 type alias Cors =

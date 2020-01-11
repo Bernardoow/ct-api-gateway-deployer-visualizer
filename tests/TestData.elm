@@ -7,8 +7,10 @@ module TestData exposing
     , corsDataWithNulls
     , fileExample01Data
     , methodData
+    , methodDataWithInvalidQueryParams
     , methodDataWithQueryParamsNull
     , queryParamsData
+    , queryParamsDataWithNulls
     , resourceData
     , resourceDataWithNulls
     , resourceFlaskData
@@ -31,6 +33,11 @@ queryParamsData =
     """{"name": "name", "type": "type"} """
 
 
+queryParamsDataWithNulls : String
+queryParamsDataWithNulls =
+    """{"name": "name"} """
+
+
 corsData : String
 corsData =
     """{"enable": true, "removeDefaultResponseTemplates": true, "allowHeaders": ["header1"]} """
@@ -44,6 +51,11 @@ corsDataWithNulls =
 methodData : String
 methodData =
     """{"path": "path", "cors": """ ++ corsData ++ """, "queryParams": [""" ++ queryParamsData ++ """], "actions": [""" ++ actionData ++ """] }"""
+
+
+methodDataWithInvalidQueryParams : String
+methodDataWithInvalidQueryParams =
+    """{"path": "path", "cors": """ ++ corsData ++ """, "queryParams": [""" ++ queryParamsDataWithNulls ++ """], "actions": [""" ++ actionData ++ """] }"""
 
 
 methodDataWithQueryParamsNull : String

@@ -25,8 +25,10 @@ import TestData
         , corsData
         , corsDataWithNulls
         , methodData
+        , methodDataWithInvalidQueryParams
         , methodDataWithQueryParamsNull
         , queryParamsData
+        , queryParamsDataWithNulls
         , resourceData
         , resourceDataWithNulls
         , resourceFlaskData
@@ -95,7 +97,7 @@ decodersTests =
                         Decode.decodeString queryParamsDecoder queryParamsData
                             |> Result.toMaybe
                 in
-                Expect.equal result (Just { name = "name", type_ = "type" })
+                Expect.equal result (Just { name = Just "name", type_ = Just "type" })
         , test "Decoder Cors" <|
             \_ ->
                 let
@@ -123,7 +125,36 @@ decodersTests =
                     (Just
                         { path = "path"
                         , cors = Just { enable = Just True, removeDefaultResponseTemplates = Just True, allowHeaders = Just [ "header1" ] }
-                        , queryParams = [ { name = "name", type_ = "type" } ]
+                        , queryParams = [ { name = Just "name", type_ = Just "type" } ]
+                        , actions =
+                            Just <|
+                                Dict.fromList
+                                    [ ( "GET"
+                                      , { action =
+                                            { type_ = "GET"
+                                            , integration = Just "integration"
+                                            , proxyIntegration = Just True
+                                            , vpcLink = Just "vpcLink"
+                                            , authorization = Just "authorization"
+                                            }
+                                        , isOpened = False
+                                        }
+                                      )
+                                    ]
+                        }
+                    )
+        , test "Decoder Method With Invalid Query Params" <|
+            \_ ->
+                let
+                    result =
+                        Decode.decodeString methodDecoder methodDataWithInvalidQueryParams
+                            |> Result.toMaybe
+                in
+                Expect.equal result
+                    (Just
+                        { path = "path"
+                        , cors = Just { enable = Just True, removeDefaultResponseTemplates = Just True, allowHeaders = Just [ "header1" ] }
+                        , queryParams = [ { name = Just "name", type_ = Nothing } ]
                         , actions =
                             Just <|
                                 Dict.fromList
@@ -168,7 +199,7 @@ decodersTests =
                         { method =
                             { path = "path"
                             , cors = Just { enable = Just True, removeDefaultResponseTemplates = Just True, allowHeaders = Just [ "header1" ] }
-                            , queryParams = [ { name = "name", type_ = "type" } ]
+                            , queryParams = [ { name = Just "name", type_ = Just "type" } ]
                             , actions =
                                 Just <|
                                     Dict.fromList
@@ -239,7 +270,7 @@ decodersTests =
                                       , { method =
                                             { path = "path"
                                             , cors = Just { enable = Just True, removeDefaultResponseTemplates = Just True, allowHeaders = Just [ "header1" ] }
-                                            , queryParams = [ { name = "name", type_ = "type" } ]
+                                            , queryParams = [ { name = Just "name", type_ = Just "type" } ]
                                             , actions =
                                                 Just <|
                                                     Dict.fromList
@@ -305,7 +336,7 @@ decodersTests =
                                                       , { method =
                                                             { path = "path"
                                                             , cors = Just { enable = Just True, removeDefaultResponseTemplates = Just True, allowHeaders = Just [ "header1" ] }
-                                                            , queryParams = [ { name = "name", type_ = "type" } ]
+                                                            , queryParams = [ { name = Just "name", type_ = Just "type" } ]
                                                             , actions =
                                                                 Just <|
                                                                     Dict.fromList
