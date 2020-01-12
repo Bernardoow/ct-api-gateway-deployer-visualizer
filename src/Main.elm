@@ -172,30 +172,6 @@ update msg model =
                 ( { blueprint = Nothing, apiRoutesFileConfigurationRaw = configuration }, Cmd.none )
 
             else
-                let
-                    _ =
-                        Debug.log "" <| Result.mapError Decode.errorToString (Decode.decodeString apiRoutesFileConfigurationDecoder configuration)
-
-                    _ =
-                        case Decode.decodeString apiRoutesFileConfigurationDecoder configuration of
-                            Err error ->
-                                case error of
-                                    Decode.Failure errorMsg text ->
-                                        let
-                                            _ =
-                                                Debug.log "errorMsg" errorMsg
-
-                                            _ =
-                                                Debug.log "text" text
-                                        in
-                                        ""
-
-                                    _ ->
-                                        ""
-
-                            _ ->
-                                ""
-                in
                 ( { blueprint = Just <| Decode.decodeString apiRoutesFileConfigurationDecoder configuration, apiRoutesFileConfigurationRaw = configuration }, Cmd.none )
 
 
